@@ -71,8 +71,13 @@ export default function DashboardHome() {
       fetch('/api/reclamos?limit=5&sort=-createdAt', { credentials: 'include' }).then((r) => r.json()),
     ])
       .then(([userData, allData, recentData]) => {
-        if (userData?.user) setUser(userData.user)
-
+        if (userData?.user) {
+          if (userData.user.role === 'ejecutor') {
+            window.location.href = '/mis-reclamos'
+            return
+          }
+          setUser(userData.user)
+        }
         if (allData?.docs) {
           const docs = allData.docs as { estado: string }[]
           setStats({

@@ -9,8 +9,15 @@ export const Reclamos: CollectionConfig = {
     group: 'Gestión',
   },
   access: {
-    create: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'carga',
-    read: authenticated,
+    create: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'carga' || user?.role === 'ejecutor',
+    read: ({ req: { user } }) => {
+      if (!user) return false
+      if (user.role === 'admin' || user.role === 'carga' || user.role === 'visualizador') return true
+      if (user.role === 'ejecutor' && user.area) {
+        return { area_derivada: { equals: typeof user.area === 'string' ? user.area : user.area.id } }
+      }
+      return false
+    },
     update: ({ req: { user } }) => {
       if (!user) return false
       if (user.role === 'admin' || user.role === 'carga') return true
@@ -208,7 +215,19 @@ export const Reclamos: CollectionConfig = {
           const lastNum = lastReclamo.docs[0]?.numero
           if (data) {
             ;(data as Record<string, unknown>).numero = typeof lastNum === 'number' ? lastNum + 1 : 1
+            
+            // Force area_derivada for ejecutor
+            if (req.user?.role === 'ejecutor' && req.user.area) {
+              ;(data as Record<string, unknown>).area_derivada = 
+                typeof req.user.area === 'string' ? req.user.area : req.user.area.id
+            }
           }
+        }
+        if (operation === 'update' && req.user?.role === 'ejecutor' && req.user.area) {
+            if (data) {
+              ;(data as Record<string, unknown>).area_derivada = 
+                typeof req.user.area === 'string' ? req.user.area : req.user.area.id
+            }
         }
         return data
       },

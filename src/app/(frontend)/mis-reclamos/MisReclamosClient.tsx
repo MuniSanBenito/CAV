@@ -12,6 +12,7 @@ import {
   IconCircleCheck,
   IconLocation,
   IconArrowLeft,
+  IconPlus,
   IconSend,
   IconClock,
 } from '@tabler/icons-react'
@@ -282,9 +283,21 @@ export default function MisReclamosClient() {
       <div className="dash-layout items-center justify-center p-6 text-center">
         <IconAlertTriangle size={64} className="text-[#ff6b6b] mb-6 opacity-80" />
         <h2 className="text-2xl font-bold mb-4 text-white/90 font-['Outfit']">{error}</h2>
-        <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#b6c544] text-[#0a150a] font-semibold hover:bg-[#c4d54b] transition-all">
-          Volver al Menú
-        </Link>
+        {user?.role !== 'ejecutor' ? (
+          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#b6c544] text-[#0a150a] font-semibold hover:bg-[#c4d54b] transition-all">
+            Volver al Menú
+          </Link>
+        ) : (
+          <button 
+            onClick={async () => {
+              await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+              window.location.href = '/login';
+            }}
+            className="px-6 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
+          >
+            Cerrar Sesión
+          </button>
+        )}
       </div>
     )
   }
@@ -294,9 +307,22 @@ export default function MisReclamosClient() {
       {/* HEADER */}
       <div className="flex-none bg-black/40 backdrop-blur-xl border-b border-white/5 pt-6 pb-4 px-4 sticky top-0 z-20">
         <div className="flex items-center gap-3 mb-4">
-          <Link href="/dashboard" className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors">
-            <IconArrowLeft size={24} />
-          </Link>
+          {user?.role !== 'ejecutor' ? (
+            <Link href="/dashboard" className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+              <IconArrowLeft size={24} />
+            </Link>
+          ) : (
+            <button 
+              onClick={async () => {
+                await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+                window.location.href = '/login';
+              }}
+              className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-[#ff6b6b]/20 hover:text-[#ff6b6b] transition-colors"
+              title="Cerrar Sesión"
+            >
+              <IconArrowLeft size={24} />
+            </button>
+          )}
           <h1 className="text-2xl font-bold text-white font-['Outfit'] tracking-tight flex-1">
             Mis Tareas
           </h1>
@@ -323,6 +349,13 @@ export default function MisReclamosClient() {
           >
             <IconMapPin size={22} />
           </button>
+          <Link 
+            href="/mis-reclamos/nuevo"
+            className="p-2.5 rounded-xl bg-[#b6c544] text-[#0a150a] flex items-center justify-center transition-all hover:bg-[#c4d44b]"
+            title="Nuevo Reclamo"
+          >
+            <IconPlus size={22} />
+          </Link>
         </div>
       </div>
 
@@ -408,7 +441,7 @@ export default function MisReclamosClient() {
                   <label className={`flex items-center p-4 rounded-xl cursor-pointer border transition-all ${formEstado === 'en_proceso' ? 'bg-[#7bcbe2]/10 border-[#7bcbe2]/30 text-[#7bcbe2]' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10'}`}>
                     <input type="radio" name="estado" className="hidden" value="en_proceso" checked={formEstado === 'en_proceso'} onChange={() => setFormEstado('en_proceso')} />
                     <IconClock size={20} className="mr-3 shrink-0" />
-                    <span className="font-medium">Continuar Luego / Falta material</span>
+                    <span className="font-medium"> Programado para mas adelante/no resuelto  </span>
                   </label>
                 </div>
               </div>

@@ -47,7 +47,11 @@ interface UserInfo {
   area?: { id: string; nombre: string } | string
 }
 
-export default function NuevoReclamoForm() {
+interface NuevoReclamoFormProps {
+  returnUrl?: string;
+}
+
+export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: NuevoReclamoFormProps = {}) {
   const router = useRouter()
   const [user, setUser] = useState<UserInfo | null>(null)
   const [areas, setAreas] = useState<Area[]>([])
@@ -74,7 +78,15 @@ export default function NuevoReclamoForm() {
       fetch('/api/areas?limit=100&where[activa][equals]=true', { credentials: 'include' }).then((r) => r.json()),
     ])
       .then(([userData, areasData]) => {
-        if (userData?.user) setUser(userData.user)
+        if (userData?.user) {
+          setUser(userData.user)
+          if (userData.user.role === 'ejecutor') {
+            const userAreaId = typeof userData.user.area === 'string' ? userData.user.area : userData.user.area?.id;
+            if (userAreaId) {
+              setAreaDerivada(userAreaId)
+            }
+          }
+        }
         if (areasData?.docs) setAreas(areasData.docs)
       })
       .catch(() => {})
@@ -166,7 +178,7 @@ export default function NuevoReclamoForm() {
           <h2>Reclamo creado exitosamente</h2>
           {createdNumero && <p className="nuevo-success-numero">Nº {createdNumero}</p>}
           <div className="nuevo-success-actions">
-            <button className="dash-action-btn dash-action-btn--secondary" onClick={() => router.push('/dashboard/reclamos')}>
+            <button className="dash-action-btn dash-action-btn--secondary" onClick={() => router.push(returnUrl)}>
               Ver Reclamos
             </button>
             <button className="dash-action-btn dash-action-btn--primary" onClick={() => { setSuccess(false); setContribuyente(null); setDescripcion(''); setCalle(''); setCoordenadas(null); setObservaciones(''); setCreatedNumero(null) }}>
@@ -182,7 +194,7 @@ export default function NuevoReclamoForm() {
     <div className="nuevo-reclamo-page">
       {/* Header */}
       <div className="nuevo-header">
-        <button type="button" className="nuevo-back-btn" onClick={() => router.push('/dashboard/reclamos')}>
+        <button type="button" className="nuevo-back-btn" onClick={() => router.push(returnUrl)}>
           <IconArrowLeft size={20} />
           Volver
         </button>
@@ -262,7 +274,7 @@ export default function NuevoReclamoForm() {
             </div>
             <div className="modal-field">
               <label className="modal-label" htmlFor="nuevo-area-derivada">Área Derivada <span className="modal-required">*</span></label>
-              <select id="nuevo-area-derivada" className="modal-select" value={areaDerivada} onChange={(e) => setAreaDerivada(e.target.value)}>
+              <select id="nuevo-area-derivada" className="modal-select" value={areaDerivada} onChange={(e) => setAreaDerivada(e.target.value)} disabled={user?.role === 'ejecutor'}>
                 <option value="">Seleccionar área...</option>
                 {areas.map((a) => (
                   <option key={a.id} value={a.id}>{a.nombre}</option>
@@ -320,7 +332,7 @@ export default function NuevoReclamoForm() {
           <button
             type="button"
             className="dash-action-btn dash-action-btn--secondary"
-            onClick={() => router.push('/dashboard/reclamos')}
+            onClick={() => router.push(returnUrl)}
           >
             Cancelar
           </button>
