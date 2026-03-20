@@ -1,0 +1,70 @@
+{
+  "name": "cav-san-benito",
+  "version": "1.0.0",
+  "description": "Centro de Atención al Vecino — Municipalidad de San Benito",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
+    "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
+    "lint": "cross-env NODE_OPTIONS=--no-deprecation next lint",
+    "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
+    "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
+    "test": "pnpm run test:int && pnpm run test:e2e",
+    "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+  },
+  "dependencies": {
+    "@payloadcms/db-mongodb": "3.79.1",
+    "@payloadcms/next": "3.79.1",
+    "@payloadcms/richtext-lexical": "3.79.1",
+    "@payloadcms/ui": "3.79.1",
+    "@tabler/icons-react": "^3.40.0",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@tanstack/react-table": "^8.21.3",
+    "@types/leaflet": "^1.9.21",
+    "cross-env": "^10.1.0",
+    "daisyui": "^5.5.19",
+    "dotenv": "17.3.1",
+    "graphql": "^16.13.1",
+    "leaflet": "^1.9.4",
+    "next": "^16.2.0",
+    "payload": "^3.79.1",
+    "postcss": "^8.5.8",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0",
+    "sharp": "0.34.5",
+    "tailwindcss": "^4.2.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@testing-library/react": "16.3.2",
+    "@types/node": "25.5.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.1",
+    "eslint": "^10.0.3",
+    "eslint-config-next": "16.2.0",
+    "jsdom": "29.0.1",
+    "prettier": "^3.8.1",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vite-tsconfig-paths": "6.1.1",
+    "vitest": "4.1.0"
+  },
+  "engines": {
+    "node": "^18.20.2 || >=20.9.0",
+    "pnpm": "^9 || ^10"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver"
+    ]
+  }
+}
