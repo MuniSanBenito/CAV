@@ -24,6 +24,14 @@ import {
   IconFilter,
   IconRefresh,
 } from '@tabler/icons-react'
+import {
+  estadoLabel,
+  estadoBadgeClass,
+  prioridadLabel,
+  prioridadBadgeClass,
+  tipoLabel,
+  tipoBadgeClass,
+} from '@/lib/constants'
 
 interface Area {
   id: string
@@ -50,47 +58,10 @@ interface Reclamo {
   createdAt: string
 }
 
-const estadoLabel: Record<string, string> = {
-  pendiente: 'Pendiente',
-  en_proceso: 'En Proceso',
-  resuelto: 'Resuelto',
-  rechazado: 'Rechazado',
-}
-
-const prioridadLabel: Record<string, string> = {
-  baja: 'Baja',
-  media: 'Media',
-  alta: 'Alta',
-  urgente: 'Urgente',
-}
-
-const tipoLabel: Record<string, string> = {
-  reclamo: 'Reclamo',
-  sugerencia: 'Sugerencia',
-  denuncia: 'Denuncia',
-  consulta: 'Consulta',
-}
-
-const estadoBadge: Record<string, string> = {
-  pendiente: 'dash-badge--pending',
-  en_proceso: 'dash-badge--progress',
-  resuelto: 'dash-badge--resolved',
-  rechazado: 'dash-badge--rejected',
-}
-
-const prioridadBadge: Record<string, string> = {
-  baja: 'dash-badge--low',
-  media: 'dash-badge--medium',
-  alta: 'dash-badge--high',
-  urgente: 'dash-badge--urgent',
-}
-
-const tipoBadge: Record<string, string> = {
-  reclamo: 'dash-badge--pending',
-  sugerencia: 'dash-badge--progress',
-  denuncia: 'dash-badge--rejected',
-  consulta: 'dash-badge--low',
-}
+// All label/badge constants imported from @/lib/constants
+const estadoBadge = estadoBadgeClass
+const prioridadBadge = prioridadBadgeClass
+const tipoBadge = tipoBadgeClass
 
 const columnHelper = createColumnHelper<Reclamo>()
 

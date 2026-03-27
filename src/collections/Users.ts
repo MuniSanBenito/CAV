@@ -48,6 +48,7 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'areas',
       required: true,
+      saveToJWT: true,
       admin: {
         description: 'Área a la que pertenece el usuario',
       },

@@ -205,35 +205,42 @@ export const Reclamos: CollectionConfig = {
     beforeValidate: [
       async ({ data, operation, req }) => {
         if (operation === 'create') {
-          // Auto-generate consecutive number
-          const lastReclamo = await req.payload.find({
-            collection: 'reclamos',
-            sort: '-numero',
-            limit: 1,
-            depth: 0,
-          })
-          const lastNum = lastReclamo.docs[0]?.numero
+          // FIX #1: Atomic counter — use MongoDB findOneAndUpdate to avoid race conditions
+          const db = req.payload.db
+          const mongoose = (db as unknown as { connection: { db: { collection: (name: string) => unknown } } }).connection.db
+          const countersCollection = mongoose.collection('counters') as {
+            findOneAndUpdate: (
+              filter: Record<string, unknown>,
+              update: Record<string, unknown>,
+              options: Record<string, unknown>,
+            ) => Promise<{ value: { seq: number } | null }>
+          }
+          const result = await countersCollection.findOneAndUpdate(
+            { _id: 'reclamo_numero' },
+            { $inc: { seq: 1 } },
+            { upsert: true, returnDocument: 'after' },
+          )
           if (data) {
-            ;(data as Record<string, unknown>).numero = typeof lastNum === 'number' ? lastNum + 1 : 1
-            
+            ;(data as Record<string, unknown>).numero = result.value?.seq ?? 1
+
             // Force area_derivada for ejecutor
             if (req.user?.role === 'ejecutor' && req.user.area) {
-              ;(data as Record<string, unknown>).area_derivada = 
+              ;(data as Record<string, unknown>).area_derivada =
                 typeof req.user.area === 'string' ? req.user.area : req.user.area.id
             }
           }
         }
         if (operation === 'update' && req.user?.role === 'ejecutor' && req.user.area) {
-            if (data) {
-              ;(data as Record<string, unknown>).area_derivada = 
-                typeof req.user.area === 'string' ? req.user.area : req.user.area.id
-            }
+          if (data) {
+            ;(data as Record<string, unknown>).area_derivada =
+              typeof req.user.area === 'string' ? req.user.area : req.user.area.id
+          }
         }
         return data
       },
     ],
     beforeChange: [
-      ({ req, operation, data }) => {
+      async ({ req, operation, data, originalDoc }) => {
         if (operation === 'create' && req.user) {
           data.creadoPor = req.user.id
           // Auto-set area_receptora from user's area if available
@@ -241,6 +248,32 @@ export const Reclamos: CollectionConfig = {
             data.area_receptora = typeof req.user.area === 'string' ? req.user.area : req.user.area.id
           }
         }
+
+        // FIX #2: Server-side append-only movimientos
+        // The client sends `_nuevoMovimiento` with just the new entry.
+        // We ignore any client-sent `movimientos` array and append server-side.
+        if (operation === 'update') {
+          const nuevoMov = (data as Record<string, unknown>)._nuevoMovimiento as
+            | { estado: string; nota: string }
+            | undefined
+          if (nuevoMov && req.user) {
+            const existingMovimientos = (originalDoc?.movimientos as unknown[]) || []
+            data.movimientos = [
+              ...existingMovimientos,
+              {
+                estado: nuevoMov.estado,
+                nota: nuevoMov.nota,
+                fecha: new Date().toISOString(),
+                usuario: req.user.id,
+              },
+            ]
+            delete (data as Record<string, unknown>)._nuevoMovimiento
+          } else if (!nuevoMov) {
+            // If no _nuevoMovimiento, preserve existing movimientos (prevent client overwrite)
+            data.movimientos = (originalDoc?.movimientos as unknown[]) || []
+          }
+        }
+
         return data
       },
     ],

@@ -12,6 +12,7 @@ import {
   IconArrowRight,
   IconSparkles,
 } from '@tabler/icons-react'
+import { estadoLabel, estadoBadgeClass } from '@/lib/constants'
 
 interface ReclamoStats {
   pendiente: number
@@ -42,19 +43,8 @@ const estadoConfig: Record<string, { label: string; className: string; icon: typ
   rechazado: { label: 'Rechazados', className: 'stat-card--rejected', icon: IconAlertTriangle },
 }
 
-const estadoBadge: Record<string, string> = {
-  pendiente: 'dash-badge--pending',
-  en_proceso: 'dash-badge--progress',
-  resuelto: 'dash-badge--resolved',
-  rechazado: 'dash-badge--rejected',
-}
-
-const estadoLabel: Record<string, string> = {
-  pendiente: 'Pendiente',
-  en_proceso: 'En Proceso',
-  resuelto: 'Resuelto',
-  rechazado: 'Rechazado',
-}
+// estadoLabel, estadoBadgeClass imported from @/lib/constants
+const estadoBadge = estadoBadgeClass
 
 export default function DashboardHome() {
   const [user, setUser] = useState<DashUser | null>(null)
@@ -67,10 +57,10 @@ export default function DashboardHome() {
   useEffect(() => {
     Promise.all([
       fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
-      fetch('/api/reclamos?limit=0', { credentials: 'include' }).then((r) => r.json()),
+      fetch('/api/stats', { credentials: 'include' }).then((r) => r.json()),
       fetch('/api/reclamos?limit=5&sort=-createdAt', { credentials: 'include' }).then((r) => r.json()),
     ])
-      .then(([userData, allData, recentData]) => {
+      .then(([userData, statsData, recentData]) => {
         if (userData?.user) {
           if (userData.user.role === 'ejecutor') {
             window.location.href = '/mis-reclamos'
@@ -78,15 +68,8 @@ export default function DashboardHome() {
           }
           setUser(userData.user)
         }
-        if (allData?.docs) {
-          const docs = allData.docs as { estado: string }[]
-          setStats({
-            pendiente: docs.filter((d) => d.estado === 'pendiente').length,
-            en_proceso: docs.filter((d) => d.estado === 'en_proceso').length,
-            resuelto: docs.filter((d) => d.estado === 'resuelto').length,
-            rechazado: docs.filter((d) => d.estado === 'rechazado').length,
-            total: docs.length,
-          })
+        if (statsData && !statsData.error) {
+          setStats(statsData)
         }
 
         if (recentData?.docs) setRecent(recentData.docs)

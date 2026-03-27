@@ -13,27 +13,10 @@ import {
   IconAlertCircle,
   IconHistory
 } from '@tabler/icons-react'
+import { estadoLabel, estadoBadgeClass, prioridadLabel } from '@/lib/constants'
 
-const estadoLabel: Record<string, string> = {
-  pendiente: 'Pendiente',
-  en_proceso: 'En Proceso',
-  resuelto: 'Resuelto',
-  rechazado: 'Rechazado',
-}
-
-const estadoBadge: Record<string, string> = {
-  pendiente: 'dash-badge--pending',
-  en_proceso: 'dash-badge--progress',
-  resuelto: 'dash-badge--resolved',
-  rechazado: 'dash-badge--rejected',
-}
-
-const prioridadLabel: Record<string, string> = {
-  baja: 'Baja',
-  media: 'Media',
-  alta: 'Alta',
-  urgente: 'Urgente',
-}
+// estadoLabel, estadoBadgeClass, prioridadLabel imported from @/lib/constants
+const estadoBadge = estadoBadgeClass
 
 export default function ReclamoDetailClient({ id }: { id: string }) {
   const router = useRouter()
@@ -90,15 +73,10 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
     try {
       const body = {
         estado: nuevoEstado,
-        movimientos: [
-          ...(reclamo.movimientos || []),
-          {
-            estado: nuevoEstado,
-            nota: nuevaNota.trim(),
-            fecha: new Date().toISOString(),
-            usuario: user?.id,
-          }
-        ]
+        _nuevoMovimiento: {
+          estado: nuevoEstado,
+          nota: nuevaNota.trim(),
+        },
       }
       
       const res = await fetch(`/api/reclamos/${id}`, {

@@ -11,7 +11,9 @@ import {
   IconX,
   IconBuilding,
   IconChevronRight,
+  IconMap,
 } from '@tabler/icons-react'
+import { roleLabels } from '@/lib/constants'
 
 interface DashboardUser {
   nombre: string
@@ -22,14 +24,10 @@ interface DashboardUser {
 const navItems = [
   { href: '/dashboard', label: 'Inicio', icon: IconLayoutDashboard },
   { href: '/dashboard/reclamos', label: 'Reclamos', icon: IconFileDescription },
+  { href: '/dashboard/mapa', label: 'Mapa', icon: IconMap },
 ]
 
-const roleLabels: Record<string, string> = {
-  admin: 'Administrador',
-  carga: 'Carga',
-  ejecutor: 'Ejecutor',
-  visualizador: 'Visualizador',
-}
+// roleLabels imported from @/lib/constants
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

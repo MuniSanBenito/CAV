@@ -16,6 +16,7 @@ import {
   IconSend,
   IconClock,
 } from '@tabler/icons-react'
+import { estadoLabel, estadoBadgeClass, cardGlowClass } from '@/lib/constants'
 
 interface User {
   id: string
@@ -44,19 +45,7 @@ interface Reclamo {
   fotos?: any[]
 }
 
-const estadoLabel: Record<string, string> = {
-  pendiente: 'Pendiente',
-  en_proceso: 'En Proceso',
-  resuelto: 'Resuelto',
-  rechazado: 'Rechazado',
-}
-
-const estadoBadge: Record<string, string> = {
-  pendiente: 'bg-[#fbd300]/20 text-[#fbd300] border border-[#fbd300]/30',
-  en_proceso: 'bg-[#7bcbe2]/20 text-[#7bcbe2] border border-[#7bcbe2]/30',
-  resuelto: 'bg-[#b6c544]/20 text-[#b6c544] border border-[#b6c544]/30',
-  rechazado: 'bg-[#ff6b6b]/20 text-[#ff6b6b] border border-[#ff6b6b]/30',
-}
+// estadoLabel, estadoBadgeClass, cardGlowClass imported from @/lib/constants
 
 export default function MisReclamosClient() {
   const [user, setUser] = useState<User | null>(null)
@@ -75,7 +64,7 @@ export default function MisReclamosClient() {
   const [formNota, setFormNota] = useState('')
   const [formFoto, setFormFoto] = useState<File | null>(null)
   const [formCoords, setFormCoords] = useState<Coordenadas | null>(null)
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -87,12 +76,12 @@ export default function MisReclamosClient() {
       setLoading(true)
       const userRes = await fetch('/api/users/me', { credentials: 'include' })
       const userData = await userRes.json()
-      
+
       if (!userData?.user) {
         setError('No estás autenticado.')
         return
       }
-      
+
       const loggedUser = userData.user
       setUser(loggedUser)
 
@@ -108,11 +97,12 @@ export default function MisReclamosClient() {
 
       const areaId = typeof loggedUser.area === 'object' ? loggedUser.area.id : loggedUser.area
 
-      const reclamosRes = await fetch(`/api/reclamos?where[area_derivada][equals]=${areaId}&sort=createdAt&limit=0`, {
-        credentials: 'include'
-      })
+      const reclamosRes = await fetch(
+        `/api/reclamos?where[area_derivada][equals]=${areaId}&sort=createdAt&limit=0`,
+        { credentials: 'include' }
+      )
       const reclamosData = await reclamosRes.json()
-      
+
       if (reclamosData.docs) {
         setReclamos(reclamosData.docs)
       }
@@ -124,36 +114,31 @@ export default function MisReclamosClient() {
     }
   }
 
-  const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; 
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
-    return R * c;
+  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLon = ((lon2 - lon1) * Math.PI) / 180
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 
   const handleSortByProximity = () => {
     if (!navigator.geolocation) {
-      alert("La geolocalización no es soportada por tu navegador.")
+      alert('La geolocalización no es soportada por tu navegador.')
       return
     }
-
-    navigator.geolocation.getCurrentPosition((position) => {
-      setUserCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
-    }, (err) => {
-      console.error(err)
-      alert("No se pudo obtener tu ubicación. Verifica los permisos.")
-    })
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => alert('No se pudo obtener tu ubicación. Verifica los permisos.')
+    )
   }
 
   const captureResolutionLocation = () => {
     if (!navigator.geolocation) return
-    navigator.geolocation.getCurrentPosition((position) => {
-      setFormCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setFormCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
     })
   }
 
@@ -171,15 +156,13 @@ export default function MisReclamosClient() {
     setFormCoords(null)
   }
 
-  const closeResolution = () => {
-    setSelectedReclamo(null)
-  }
+  const closeResolution = () => setSelectedReclamo(null)
 
   const submitResolution = async () => {
     if (!selectedReclamo || !user) return
 
     if (formEstado !== 'resuelto' && !formNota.trim()) {
-      alert('Debes ingresar una nota o explicación si el reclamo no fue resuelto.')
+      alert('Debes ingresar una nota si el reclamo no fue resuelto.')
       return
     }
 
@@ -188,18 +171,12 @@ export default function MisReclamosClient() {
 
       let fotoId = null
       if (formFoto) {
-        const formData = new FormData()
-        formData.append('file', formFoto)
-        formData.append('alt', `Resolución #${selectedReclamo.numero}`)
-
-        const uploadRes = await fetch('/api/media', {
-          method: 'POST',
-          body: formData,
-        })
+        const fd = new FormData()
+        fd.append('file', formFoto)
+        fd.append('alt', `Resolución #${selectedReclamo.numero}`)
+        const uploadRes = await fetch('/api/media', { method: 'POST', body: fd })
         const uploadData = await uploadRes.json()
-        if (uploadData.doc && uploadData.doc.id) {
-          fotoId = uploadData.doc.id
-        }
+        if (uploadData.doc?.id) fotoId = uploadData.doc.id
       }
 
       let notaFinal = formNota.trim()
@@ -207,14 +184,9 @@ export default function MisReclamosClient() {
         notaFinal = `[GPS: ${formCoords.lat.toFixed(5)}, ${formCoords.lng.toFixed(5)}]\n${notaFinal}`
       }
 
-      const nuevoMovimiento = {
-        estado: formEstado,
-        nota: notaFinal || 'Atención completada en sitio.',
-        fecha: new Date().toISOString(),
-        usuario: user.id
-      }
-
-      const fotosCargadas = selectedReclamo.fotos ? selectedReclamo.fotos.map((f: any) => f.id || f) : []
+      const fotosCargadas = selectedReclamo.fotos
+        ? selectedReclamo.fotos.map((f: any) => f.id || f)
+        : []
       if (fotoId) fotosCargadas.push(fotoId)
 
       const patchRes = await fetch(`/api/reclamos/${selectedReclamo.id}`, {
@@ -222,78 +194,76 @@ export default function MisReclamosClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           estado: formEstado,
-          movimientos: [...(selectedReclamo.movimientos || []), nuevoMovimiento],
-          fotos: fotosCargadas
+          _nuevoMovimiento: {
+            estado: formEstado,
+            nota: notaFinal || 'Atención completada en sitio.',
+          },
+          fotos: fotosCargadas,
         }),
       })
 
       if (patchRes.ok) {
-        setReclamos(prev => prev.map(r => {
-          if (r.id === selectedReclamo.id) {
-            return {
-              ...r,
-              estado: formEstado,
-              movimientos: [...(r.movimientos || []), nuevoMovimiento],
-              fotos: fotosCargadas
-            }
-          }
-          return r
-        }))
+        // Refresh from server to get the authoritative movimientos
+        await fetchUserAndReclamos()
         closeResolution()
       } else {
-        alert("Hubo un error al actualizar.")
+        alert('Hubo un error al actualizar.')
       }
     } catch (err) {
       console.error(err)
-      alert("Error de conexión.")
+      alert('Error de conexión.')
     } finally {
       setResolving(false)
     }
   }
 
+  // Filter & sort
   let displayedReclamos = [...reclamos]
   if (searchTerm) {
     const term = searchTerm.toLowerCase()
-    displayedReclamos = displayedReclamos.filter(r => 
-      (r.calle || '').toLowerCase().includes(term) ||
-      r.numero.toString().includes(term) ||
-      (r.descripcion || '').toLowerCase().includes(term)
+    displayedReclamos = displayedReclamos.filter(
+      (r) =>
+        (r.calle || '').toLowerCase().includes(term) ||
+        r.numero.toString().includes(term) ||
+        (r.descripcion || '').toLowerCase().includes(term)
     )
   }
-
   if (userCoords) {
     displayedReclamos.sort((a, b) => {
       if (!a.coordenadas?.lat || !b.coordenadas?.lat) return 0
-      const distA = getDistanceFromLatLonInKm(userCoords.lat, userCoords.lng, a.coordenadas.lat, a.coordenadas.lng)
-      const distB = getDistanceFromLatLonInKm(userCoords.lat, userCoords.lng, b.coordenadas.lat, b.coordenadas.lng)
-      return distA - distB
+      return (
+        getDistanceKm(userCoords.lat, userCoords.lng, a.coordenadas.lat, a.coordenadas.lng) -
+        getDistanceKm(userCoords.lat, userCoords.lng, b.coordenadas.lat, b.coordenadas.lng)
+      )
     })
   }
 
+  // ── Loading ──
   if (loading) {
     return (
-      <div className="dash-layout items-center justify-center">
-        <span className="loading loading-spinner text-[#b6c544] w-12 h-12"></span>
+      <div className="mis-reclamos-loading">
+        <span className="loading loading-spinner loading-lg" />
       </div>
     )
   }
 
+  // ── Error ──
   if (error) {
     return (
-      <div className="dash-layout items-center justify-center p-6 text-center">
-        <IconAlertTriangle size={64} className="text-[#ff6b6b] mb-6 opacity-80" />
-        <h2 className="text-2xl font-bold mb-4 text-white/90 font-['Outfit']">{error}</h2>
+      <div className="mis-reclamos-error-screen">
+        <IconAlertTriangle size={56} color="#ff6b6b" strokeWidth={1.5} />
+        <h2 className="mis-reclamos-error-title">{error}</h2>
         {user?.role !== 'ejecutor' ? (
-          <Link href="/dashboard" className="px-6 py-3 rounded-xl bg-[#b6c544] text-[#0a150a] font-semibold hover:bg-[#c4d54b] transition-all">
+          <Link href="/dashboard" className="mis-reclamos-error-btn mis-reclamos-error-btn--primary">
             Volver al Menú
           </Link>
         ) : (
-          <button 
+          <button
+            className="mis-reclamos-error-btn mis-reclamos-error-btn--secondary"
             onClick={async () => {
-              await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
-              window.location.href = '/login';
+              await fetch('/api/users/logout', { method: 'POST', credentials: 'include' })
+              window.location.href = '/login'
             }}
-            className="px-6 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
           >
             Cerrar Sesión
           </button>
@@ -302,111 +272,109 @@ export default function MisReclamosClient() {
     )
   }
 
+  // ── Main ──
   return (
-    <div className="dash-layout flex-col h-screen overflow-hidden">
+    <div className="mis-reclamos-layout">
       {/* HEADER */}
-      <div className="flex-none bg-black/40 backdrop-blur-xl border-b border-white/5 pt-6 pb-4 px-4 sticky top-0 z-20">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="mis-reclamos-header">
+        <div className="mis-reclamos-toprow">
           {user?.role !== 'ejecutor' ? (
-            <Link href="/dashboard" className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors">
-              <IconArrowLeft size={24} />
+            <Link
+              href="/dashboard"
+              className="mis-reclamos-back-btn"
+              title="Volver al Dashboard"
+            >
+              <IconArrowLeft size={20} />
             </Link>
           ) : (
-            <button 
-              onClick={async () => {
-                await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
-                window.location.href = '/login';
-              }}
-              className="p-2 -ml-2 rounded-xl text-white/60 hover:text-white hover:bg-[#ff6b6b]/20 hover:text-[#ff6b6b] transition-colors"
+            <button
+              className="mis-reclamos-back-btn mis-reclamos-back-btn--danger"
               title="Cerrar Sesión"
+              onClick={async () => {
+                await fetch('/api/users/logout', { method: 'POST', credentials: 'include' })
+                window.location.href = '/login'
+              }}
             >
-              <IconArrowLeft size={24} />
+              <IconArrowLeft size={20} />
             </button>
           )}
-          <h1 className="text-2xl font-bold text-white font-['Outfit'] tracking-tight flex-1">
-            Mis Tareas
-          </h1>
+          <h1 className="mis-reclamos-title">Mis Tareas</h1>
         </div>
-        
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <IconSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-            <input 
-              type="text" 
-              placeholder="Buscar reclamo..." 
-              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#b6c544]/50 focus:bg-white/10 transition-all text-[15px]"
+
+        <div className="mis-reclamos-toolbar">
+          <div className="mis-reclamos-search-wrap">
+            <IconSearch size={16} className="mis-reclamos-search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar reclamo..."
+              className="mis-reclamos-search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button 
-            className={`p-2.5 rounded-xl border transition-all flex items-center justify-center ${
-              userCoords 
-                ? 'bg-[#b6c544]/20 border-[#b6c544]/40 text-[#b6c544]' 
-                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
-            }`}
+          <button
+            className={`mis-reclamos-icon-btn${userCoords ? ' mis-reclamos-icon-btn--active' : ''}`}
             onClick={handleSortByProximity}
+            title="Ordenar por cercanía"
           >
-            <IconMapPin size={22} />
+            <IconMapPin size={20} />
           </button>
-          <Link 
+          <Link
             href="/mis-reclamos/nuevo"
-            className="p-2.5 rounded-xl bg-[#b6c544] text-[#0a150a] flex items-center justify-center transition-all hover:bg-[#c4d44b]"
+            className="mis-reclamos-icon-btn mis-reclamos-icon-btn--primary"
             title="Nuevo Reclamo"
           >
-            <IconPlus size={22} />
+            <IconPlus size={20} />
           </Link>
         </div>
       </div>
 
-      {/* LISTA */}
-      <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth">
-        <p className="text-xs font-medium text-white/40 uppercase tracking-widest mb-4 ml-1">
-          {displayedReclamos.length} {displayedReclamos.length === 1 ? 'Actividad' : 'Actividades'} 
-          {userCoords && ' • Por cercanía'}
+      {/* LIST */}
+      <div className="mis-reclamos-list">
+        <p className="mis-reclamos-count">
+          {displayedReclamos.length}{' '}
+          {displayedReclamos.length === 1 ? 'actividad' : 'actividades'}
+          {userCoords && ' · Por cercanía'}
         </p>
 
         {displayedReclamos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 opacity-40">
-            <IconCircleCheck size={64} className="mb-4" />
-            <p className="text-lg font-['Outfit']">Todo al día</p>
+          <div className="mis-reclamos-empty">
+            <IconCircleCheck size={56} strokeWidth={1.2} />
+            <span>Todo al día</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            {displayedReclamos.map(reclamo => (
-              <div key={reclamo.id} className="relative p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md overflow-hidden transition-all hover:bg-white/10">
-                {/* Glow sutil según estado */}
-                {reclamo.estado === 'pendiente' && <div className="absolute top-0 right-0 w-32 h-32 bg-[#fbd300]/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>}
-                {reclamo.estado === 'resuelto' && <div className="absolute top-0 right-0 w-32 h-32 bg-[#b6c544]/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>}
+          <div className="mis-reclamos-cards">
+            {displayedReclamos.map((reclamo) => (
+              <div key={reclamo.id} className="mis-reclamo-card">
+                {/* Subtle glow based on state */}
+                {cardGlowClass[reclamo.estado] && (
+                  <div className={cardGlowClass[reclamo.estado]} />
+                )}
 
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
-                      #{reclamo.numero}
-                    </span>
-                    <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${estadoBadge[reclamo.estado] || 'bg-white/10 text-white/60'}`}>
+                <div className="mis-reclamo-card-body">
+                  <div className="mis-reclamo-card-toprow">
+                    <span className="mis-reclamo-card-numero">#{reclamo.numero}</span>
+                    <span className={`dash-badge ${estadoBadgeClass[reclamo.estado] || ''}`}>
                       {estadoLabel[reclamo.estado] || reclamo.estado}
-                    </div>
+                    </span>
                   </div>
 
-                  <h3 className="font-['Outfit'] font-semibold text-lg text-white/90 leading-tight mb-2 capitalize">
-                    {reclamo.tipo}
-                  </h3>
+                  <div className="mis-reclamo-card-tipo">{reclamo.tipo}</div>
 
-                  <div className="flex items-start gap-2 text-sm text-white/60 mb-3 bg-black/20 p-2.5 rounded-lg border border-white/5">
-                    <IconLocation size={16} className="shrink-0 mt-0.5 opacity-70" />
-                    <span className="leading-snug">{reclamo.calle || 'Sin dirección específica'}</span>
+                  <div className="mis-reclamo-card-address">
+                    <IconLocation size={14} className="mis-reclamo-card-address-icon" />
+                    <span>{reclamo.calle || 'Sin dirección específica'}</span>
                   </div>
 
-                  <p className="text-[14px] text-white/50 line-clamp-2 leading-relaxed mb-4">
-                    {reclamo.descripcion}
-                  </p>
+                  {reclamo.descripcion && (
+                    <p className="mis-reclamo-card-desc">{reclamo.descripcion}</p>
+                  )}
 
-                  <button 
-                    className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white/90 font-medium hover:bg-[#b6c544] hover:border-[#b6c544] hover:text-[#0a150a] transition-all flex items-center justify-center gap-2"
+                  <button
+                    className="mis-reclamo-card-action-btn"
                     onClick={() => openResolution(reclamo)}
                   >
-                    Actuar <IconArrowLeft size={16} className="rotate-180" />
+                    Actuar <IconArrowLeft size={15} style={{ transform: 'rotate(180deg)' }} />
                   </button>
                 </div>
               </div>
@@ -415,107 +383,124 @@ export default function MisReclamosClient() {
         )}
       </div>
 
-      {/* MODAL / DRAWER */}
+      {/* RESOLUTION DRAWER */}
       {selectedReclamo && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeResolution}></div>
-          
-          <div className="relative bg-[#0d1a0f] border-t border-white/10 rounded-t-[32px] w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-up">
-            <div className="flex-none p-6 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white font-['Outfit']">Ticket #{selectedReclamo.numero}</h2>
-              <button className="p-2 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors" onClick={closeResolution}>
-                <IconX size={20} />
+        <div className="mis-reclamos-drawer-overlay">
+          <div className="mis-reclamos-drawer-backdrop" onClick={closeResolution} />
+
+          <div className="mis-reclamos-drawer">
+            <div className="mis-reclamos-drawer-handle" />
+
+            <div className="mis-reclamos-drawer-header">
+              <h2 className="mis-reclamos-drawer-title">Ticket #{selectedReclamo.numero}</h2>
+              <button className="mis-reclamos-drawer-close" onClick={closeResolution}>
+                <IconX size={18} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Opción de Estado */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-white/50 uppercase tracking-wider">Acción</label>
-                <div className="grid grid-cols-1 gap-2">
-                  <label className={`flex items-center p-4 rounded-xl cursor-pointer border transition-all ${formEstado === 'resuelto' ? 'bg-[#b6c544]/10 border-[#b6c544]/30 text-[#b6c544]' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10'}`}>
-                    <input type="radio" name="estado" className="hidden" value="resuelto" checked={formEstado === 'resuelto'} onChange={() => setFormEstado('resuelto')} />
-                    <IconCircleCheck size={20} className="mr-3 shrink-0" />
-                    <span className="font-medium">Completado Extitosamente</span>
+            <div className="mis-reclamos-drawer-body">
+              {/* Estado */}
+              <div>
+                <div className="mis-reclamos-drawer-section-label">Acción</div>
+                <div className="mis-reclamos-estado-options">
+                  <label
+                    className={`mis-reclamos-estado-option${
+                      formEstado === 'resuelto' ? ' mis-reclamos-estado-option--resuelto-active' : ''
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="resuelto"
+                      checked={formEstado === 'resuelto'}
+                      onChange={() => setFormEstado('resuelto')}
+                    />
+                    <IconCircleCheck size={20} />
+                    <span>Completado exitosamente</span>
                   </label>
-                  <label className={`flex items-center p-4 rounded-xl cursor-pointer border transition-all ${formEstado === 'en_proceso' ? 'bg-[#7bcbe2]/10 border-[#7bcbe2]/30 text-[#7bcbe2]' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10'}`}>
-                    <input type="radio" name="estado" className="hidden" value="en_proceso" checked={formEstado === 'en_proceso'} onChange={() => setFormEstado('en_proceso')} />
-                    <IconClock size={20} className="mr-3 shrink-0" />
-                    <span className="font-medium"> Programado para mas adelante/no resuelto  </span>
+                  <label
+                    className={`mis-reclamos-estado-option${
+                      formEstado === 'en_proceso' ? ' mis-reclamos-estado-option--proceso-active' : ''
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="en_proceso"
+                      checked={formEstado === 'en_proceso'}
+                      onChange={() => setFormEstado('en_proceso')}
+                    />
+                    <IconClock size={20} />
+                    <span>Programado / No resuelto aún</span>
                   </label>
                 </div>
               </div>
 
-              {/* Adjuntos */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-white/50 uppercase tracking-wider">Evidencia</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-                  
-                  <button 
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-2 ${formFoto ? 'bg-[#b6c544]/20 border-[#b6c544]/40 text-[#b6c544]' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
+              {/* Evidencia */}
+              <div>
+                <div className="mis-reclamos-drawer-section-label">Evidencia</div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
+                <div className="mis-reclamos-evidence-grid">
+                  <button
+                    className={`mis-reclamos-evidence-btn${formFoto ? ' mis-reclamos-evidence-btn--active' : ''}`}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     {formFoto ? <IconCheck size={24} /> : <IconCamera size={24} />}
-                    <span className="text-[13px] font-medium text-center leading-tight">
-                      {formFoto ? 'Foto Cargada' : 'Tomar Foto'}
-                    </span>
+                    <span>{formFoto ? 'Foto cargada' : 'Tomar foto'}</span>
                   </button>
-
-                  <button 
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-2 ${formCoords ? 'bg-[#b6c544]/20 border-[#b6c544]/40 text-[#b6c544]' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}
+                  <button
+                    className={`mis-reclamos-evidence-btn${formCoords ? ' mis-reclamos-evidence-btn--active' : ''}`}
                     onClick={captureResolutionLocation}
                   >
                     {formCoords ? <IconCheck size={24} /> : <IconMapPin size={24} />}
-                    <span className="text-[13px] font-medium text-center leading-tight">
-                      {formCoords ? 'GPS Guardado' : 'Fijar GPS'}
-                    </span>
+                    <span>{formCoords ? 'GPS guardado' : 'Fijar GPS'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Detalle */}
-              <div className="space-y-3 pb-8">
-                <label className="text-sm font-semibold text-white/50 uppercase tracking-wider flex items-center justify-between">
+              {/* Nota */}
+              <div style={{ paddingBottom: '8px' }}>
+                <div className="mis-reclamos-nota-label">
                   <span>Nota Final</span>
-                  {formEstado !== 'resuelto' && <span className="text-[#ff6b6b] text-[10px] bg-[#ff6b6b]/10 px-2 py-0.5 rounded-sm">Obligatorio</span>}
-                </label>
-                <textarea 
-                  className="w-full h-32 p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-[#b6c544]/50 transition-all resize-none text-[15px] leading-relaxed"
+                  {formEstado !== 'resuelto' && (
+                    <span className="mis-reclamos-nota-required">Obligatorio</span>
+                  )}
+                </div>
+                <textarea
+                  className="mis-reclamos-nota-textarea"
                   placeholder="Detalles del trabajo u observaciones..."
                   value={formNota}
                   onChange={(e) => setFormNota(e.target.value)}
-                ></textarea>
+                />
               </div>
             </div>
 
-            <div className="flex-none p-6 pt-0">
-              <button 
-                className="w-full py-4 rounded-xl bg-[#b6c544] text-[#0a150a] font-['Outfit'] font-bold text-lg hover:bg-[#c4d44b] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(182,197,68,0.2)]"
+            <div className="mis-reclamos-drawer-footer">
+              <button
+                className="mis-reclamos-submit-btn"
                 onClick={submitResolution}
                 disabled={resolving || (formEstado !== 'resuelto' && formNota.trim() === '')}
               >
                 {resolving ? (
-                  <span className="loading loading-spinner w-6 h-6"></span>
+                  <span className="loading loading-spinner" style={{ width: 22, height: 22 }} />
                 ) : (
-                  <>Registrar <IconSend size={20} /></>
+                  <>
+                    Registrar <IconSend size={18} />
+                  </>
                 )}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Tailwind anim for modal */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes fade-up {
-          from { opacity: 0; transform: translateY(100%); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-up {
-          animation: fade-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}} />
     </div>
   )
 }
