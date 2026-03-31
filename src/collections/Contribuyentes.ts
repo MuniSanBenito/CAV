@@ -28,7 +28,6 @@ export const Contribuyentes: CollectionConfig = {
     {
       name: 'dni',
       type: 'text',
-      required: true,
       unique: true,
       index: true,
     },

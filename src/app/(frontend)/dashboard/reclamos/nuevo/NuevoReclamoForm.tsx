@@ -15,6 +15,7 @@ import {
   IconMapPin,
 } from '@tabler/icons-react'
 import ContribuyenteSearch from './ContribuyenteSearch'
+import AddressSearch from '@/components/AddressSearch'
 
 // Dynamic import for Leaflet map (SSR-safe)
 const UbicacionMap = dynamic(() => import('./UbicacionMap'), { ssr: false })
@@ -48,10 +49,12 @@ interface UserInfo {
 }
 
 interface NuevoReclamoFormProps {
-  returnUrl?: string;
+  returnUrl?: string
 }
 
-export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: NuevoReclamoFormProps = {}) {
+export default function NuevoReclamoForm({
+  returnUrl = '/dashboard/reclamos',
+}: NuevoReclamoFormProps = {}) {
   const router = useRouter()
   const [user, setUser] = useState<UserInfo | null>(null)
   const [areas, setAreas] = useState<Area[]>([])
@@ -68,20 +71,92 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
   const [medio, setMedio] = useState('presencial')
   const [prioridad, setPrioridad] = useState('media')
   const [areaDerivada, setAreaDerivada] = useState('')
-  const [calle, setCalle] = useState('')
+  const [direccionBusqueda, setDireccionBusqueda] = useState('') // Texto original del buscador
+  const [barrio, setBarrio] = useState('')
+  const [ubicacion, setUbicacion] = useState<{
+    direccionIngresada: string
+    direccionNormalizada: string
+    numero: string
+    barrio: string
+    localidad: string
+    location: { lat: number; lng: number } | null
+  } | null>(null)
+  const [calle, setCalle] = useState('') // Dirección en texto plano (reverse geocode del mapa)
   const [coordenadas, setCoordenadas] = useState<Coords | null>(null)
+
+  // Lista de barrios de San Benito para matching
+  const BARRIOS = [
+    '250 Viviendas',
+    'Altos del Este',
+    'Centro',
+    'Jardines',
+    'La Loma',
+    'La Virgencita II',
+    'Las Tunas',
+    'Loteo Aguer Cavallo',
+    'Loteo Bizai',
+    'Loteo Cumini',
+    'Loteo Dobanton Mizawak Martinez',
+    'Loteo Furios',
+    'Portal del Sol',
+    'Puesta del Sol',
+    'San Martín',
+    'San Miguel',
+    'San Pedro',
+    'San Sebastián',
+    'Senger',
+    'Solvencia',
+    'Sur',
+  ]
+
+  // Intentar hacer match del barrio detectado por OSM contra nuestra lista
+  const handleBarrioDetectado = (barrioOSM: string) => {
+    const normalizar = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+    const barrioNorm = normalizar(barrioOSM)
+    const match = BARRIOS.find((b) => {
+      const bNorm = normalizar(b)
+      return bNorm === barrioNorm || bNorm.includes(barrioNorm) || barrioNorm.includes(bNorm)
+    })
+    if (match) setBarrio(match)
+  }
+
+  // Cuando el mapa hace reverse geocode, también actualizar ubicacion.location
+  const handleMapCoordsChange = (coords: Coords | null) => {
+    setCoordenadas(coords)
+    if (coords) {
+      setUbicacion((prev) =>
+        prev
+          ? { ...prev, location: coords }
+          : {
+              direccionIngresada: calle,
+              direccionNormalizada: calle,
+              numero: '',
+              barrio: '',
+              localidad: 'San Benito',
+              location: coords,
+            },
+      )
+    }
+  }
   const [observaciones, setObservaciones] = useState('')
 
   useEffect(() => {
     Promise.all([
       fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
-      fetch('/api/areas?limit=100&where[activa][equals]=true', { credentials: 'include' }).then((r) => r.json()),
+      fetch('/api/areas?limit=100&where[activa][equals]=true', { credentials: 'include' }).then(
+        (r) => r.json(),
+      ),
     ])
       .then(([userData, areasData]) => {
         if (userData?.user) {
           setUser(userData.user)
           if (userData.user.role === 'ejecutor') {
-            const userAreaId = typeof userData.user.area === 'string' ? userData.user.area : userData.user.area?.id;
+            const userAreaId =
+              typeof userData.user.area === 'string' ? userData.user.area : userData.user.area?.id
             if (userAreaId) {
               setAreaDerivada(userAreaId)
             }
@@ -133,8 +208,28 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
         area_receptora: areaReceptoraId || undefined,
         area_derivada: areaDerivada,
         estado: 'pendiente',
-        calle: calle.trim() || undefined,
         observaciones: observaciones.trim() || undefined,
+      }
+
+      // Enviar datos de ubicación completos si existen
+      if (ubicacion || barrio || direccionBusqueda) {
+        body.ubicacion = {
+          direccionIngresada: direccionBusqueda || ubicacion?.direccionIngresada,
+          direccionNormalizada: ubicacion?.direccionNormalizada,
+          barrio: barrio || ubicacion?.barrio,
+          localidad: ubicacion?.localidad || 'San Benito',
+          location: ubicacion?.location
+            ? {
+                type: 'Point',
+                coordinates: [ubicacion.location.lng, ubicacion.location.lat],
+              }
+            : undefined,
+        }
+      }
+
+      // Legacy: mantener calle y coordenadas para compatibilidad
+      if (calle) {
+        body.calle = calle.trim()
       }
       if (coordenadas) {
         body.coordenadas = { lat: coordenadas.lat, lng: coordenadas.lng }
@@ -178,10 +273,27 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
           <h2>Reclamo creado exitosamente</h2>
           {createdNumero && <p className="nuevo-success-numero">Nº {createdNumero}</p>}
           <div className="nuevo-success-actions">
-            <button className="dash-action-btn dash-action-btn--secondary" onClick={() => router.push(returnUrl)}>
+            <button
+              className="dash-action-btn dash-action-btn--secondary"
+              onClick={() => router.push(returnUrl)}
+            >
               Ver Reclamos
             </button>
-            <button className="dash-action-btn dash-action-btn--primary" onClick={() => { setSuccess(false); setContribuyente(null); setDescripcion(''); setCalle(''); setCoordenadas(null); setObservaciones(''); setCreatedNumero(null) }}>
+            <button
+              className="dash-action-btn dash-action-btn--primary"
+              onClick={() => {
+                setSuccess(false)
+                setContribuyente(null)
+                setDescripcion('')
+                setDireccionBusqueda('')
+                setBarrio('')
+                setUbicacion(null)
+                setCalle('')
+                setCoordenadas(null)
+                setObservaciones('')
+                setCreatedNumero(null)
+              }}
+            >
               Cargar otro
             </button>
           </div>
@@ -229,8 +341,15 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
           </div>
           <div className="nuevo-row-3">
             <div className="modal-field">
-              <label className="modal-label" htmlFor="nuevo-tipo">Tipo <span className="modal-required">*</span></label>
-              <select id="nuevo-tipo" className="modal-select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <label className="modal-label" htmlFor="nuevo-tipo">
+                Tipo <span className="modal-required">*</span>
+              </label>
+              <select
+                id="nuevo-tipo"
+                className="modal-select"
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+              >
                 <option value="reclamo">Reclamo</option>
                 <option value="sugerencia">Sugerencia</option>
                 <option value="denuncia">Denuncia</option>
@@ -238,8 +357,15 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
               </select>
             </div>
             <div className="modal-field">
-              <label className="modal-label" htmlFor="nuevo-medio">Medio <span className="modal-required">*</span></label>
-              <select id="nuevo-medio" className="modal-select" value={medio} onChange={(e) => setMedio(e.target.value)}>
+              <label className="modal-label" htmlFor="nuevo-medio">
+                Medio <span className="modal-required">*</span>
+              </label>
+              <select
+                id="nuevo-medio"
+                className="modal-select"
+                value={medio}
+                onChange={(e) => setMedio(e.target.value)}
+              >
                 <option value="presencial">Presencial</option>
                 <option value="whatsapp">WhatsApp</option>
                 <option value="correo">Correo</option>
@@ -248,8 +374,15 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
               </select>
             </div>
             <div className="modal-field">
-              <label className="modal-label" htmlFor="nuevo-prioridad">Prioridad</label>
-              <select id="nuevo-prioridad" className="modal-select" value={prioridad} onChange={(e) => setPrioridad(e.target.value)}>
+              <label className="modal-label" htmlFor="nuevo-prioridad">
+                Prioridad
+              </label>
+              <select
+                id="nuevo-prioridad"
+                className="modal-select"
+                value={prioridad}
+                onChange={(e) => setPrioridad(e.target.value)}
+              >
                 <option value="baja">Baja</option>
                 <option value="media">Media</option>
                 <option value="alta">Alta</option>
@@ -268,16 +401,24 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
           <div className="modal-row">
             <div className="modal-field">
               <label className="modal-label">Área Receptora</label>
-              <div className="nuevo-area-readonly">
-                {areaReceptoraNombre}
-              </div>
+              <div className="nuevo-area-readonly">{areaReceptoraNombre}</div>
             </div>
             <div className="modal-field">
-              <label className="modal-label" htmlFor="nuevo-area-derivada">Área Derivada <span className="modal-required">*</span></label>
-              <select id="nuevo-area-derivada" className="modal-select" value={areaDerivada} onChange={(e) => setAreaDerivada(e.target.value)} disabled={user?.role === 'ejecutor'}>
+              <label className="modal-label" htmlFor="nuevo-area-derivada">
+                Área Derivada <span className="modal-required">*</span>
+              </label>
+              <select
+                id="nuevo-area-derivada"
+                className="modal-select"
+                value={areaDerivada}
+                onChange={(e) => setAreaDerivada(e.target.value)}
+                disabled={user?.role === 'ejecutor'}
+              >
                 <option value="">Seleccionar área...</option>
                 {areas.map((a) => (
-                  <option key={a.id} value={a.id}>{a.nombre}</option>
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
                 ))}
               </select>
             </div>
@@ -301,7 +442,9 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
             />
           </div>
           <div className="modal-field">
-            <label className="modal-label" htmlFor="nuevo-observaciones">Observaciones internas</label>
+            <label className="modal-label" htmlFor="nuevo-observaciones">
+              Observaciones internas
+            </label>
             <textarea
               id="nuevo-observaciones"
               className="modal-textarea"
@@ -319,11 +462,92 @@ export default function NuevoReclamoForm({ returnUrl = '/dashboard/reclamos' }: 
             <IconMapPin size={20} stroke={1.5} />
             <span>Ubicación</span>
           </div>
-          <UbicacionMap 
+
+          {/* Buscador de dirección */}
+          <div className="modal-field" style={{ marginBottom: '16px' }}>
+            <label className="modal-label">Buscar dirección</label>
+            <AddressSearch
+              placeholder="Ej: San Martín 123..."
+              value={calle}
+              onSelect={(result) => {
+                // Guardar texto original de búsqueda
+                setDireccionBusqueda(result.displayName)
+
+                // Guardar objeto completo de ubicación
+                setUbicacion({
+                  direccionIngresada: result.displayName,
+                  direccionNormalizada: result.displayName,
+                  numero: result.address.houseNumber || '',
+                  barrio: result.address.suburb || '',
+                  localidad: result.address.city || 'San Benito',
+                  location: { lat: result.lat, lng: result.lng },
+                })
+
+                // Actualizar legacy fields para el mapa
+                setCalle(result.displayName)
+                setCoordenadas({ lat: result.lat, lng: result.lng })
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Buscá la dirección y seleccioná el resultado correcto
+            </p>
+
+            {/* Mostrar coordenadas detectadas */}
+            {ubicacion?.location && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                <IconMapPin size={13} />
+                <span>
+                  Coordenadas: {ubicacion.location.lat.toFixed(6)},{' '}
+                  {ubicacion.location.lng.toFixed(6)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Barrio */}
+          <div className="modal-field" style={{ marginBottom: '16px' }}>
+            <label className="modal-label" htmlFor="nuevo-barrio">
+              Barrio
+            </label>
+            <select
+              id="nuevo-barrio"
+              className="modal-select"
+              value={barrio}
+              onChange={(e) => setBarrio(e.target.value)}
+            >
+              <option value="">Seleccionar barrio...</option>
+              <option value="250 Viviendas">250 Viviendas</option>
+              <option value="Altos del Este">Altos del Este</option>
+              <option value="Centro">Centro</option>
+              <option value="Jardines">Jardines</option>
+              <option value="La Loma">La Loma</option>
+              <option value="La Virgencita II">La Virgencita II</option>
+              <option value="Loteo Aguer Cavallo">Loteo Aguer Cavallo</option>
+              <option value="Loteo Bizai">Loteo Bizai</option>
+              <option value="Loteo Cumini">Loteo Cumini</option>
+              <option value="Loteo Dobanton Mizawak Martinez">
+                Loteo Dobanton Mizawak Martinez
+              </option>
+              <option value="Loteo Furios">Loteo Furios</option>
+              <option value="Las Tunas">Las Tunas</option>
+              <option value="Portal del Sol">Portal del Sol</option>
+              <option value="Puesta del Sol">Puesta del Sol</option>
+              <option value="San Martín">San Martín</option>
+              <option value="San Miguel">San Miguel</option>
+              <option value="San Pedro">San Pedro</option>
+              <option value="San Sebastián">San Sebastián</option>
+              <option value="Senger">Senger</option>
+              <option value="Solvencia">Solvencia</option>
+              <option value="Sur">Sur</option>
+            </select>
+          </div>
+
+          <UbicacionMap
             address={calle}
             onAddressChange={setCalle}
-            value={coordenadas} 
-            onChange={setCoordenadas} 
+            value={coordenadas}
+            onChange={handleMapCoordsChange}
+            onBarrioChange={handleBarrioDetectado}
           />
         </div>
 

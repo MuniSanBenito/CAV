@@ -133,9 +133,13 @@ export interface User {
   apellido: string;
   role: 'admin' | 'carga' | 'ejecutor' | 'visualizador';
   /**
-   * Área a la que pertenece el usuario
+   * Áreas asignadas al usuario (puede tener varias)
    */
-  area: string | Area;
+  areas?: (string | Area)[] | null;
+  /**
+   * ⚠️ Deprecado - usar "areas" en su lugar
+   */
+  area?: (string | null) | Area;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -214,14 +218,62 @@ export interface Reclamo {
    * Área a la que se deriva el reclamo
    */
   area_derivada: string | Area;
+  categoria:
+    | 'general'
+    | 'alumbrado'
+    | 'pavimento'
+    | 'higiene'
+    | 'pluviales'
+    | 'verdes'
+    | 'transito'
+    | 'ruidos'
+    | 'convivencia'
+    | 'servicios';
+  /**
+   * Especificación adicional de la categoría
+   */
+  subcategoria?: string | null;
   prioridad: 'baja' | 'media' | 'alta' | 'urgente';
+  /**
+   * Fecha estimada de resolución (SLA)
+   */
+  fechaCompromiso?: string | null;
+  /**
+   * Días estimados para resolver el reclamo
+   */
+  diasResolucionEstimados?: number | null;
   estado: 'pendiente' | 'en_proceso' | 'resuelto' | 'rechazado';
   /**
-   * Calle y número de la ubicación del reclamo
+   * Datos de ubicación geocodificada
+   */
+  ubicacion?: {
+    /**
+     * Dirección tal como la ingresó el usuario
+     */
+    direccionIngresada?: string | null;
+    /**
+     * Dirección normalizada por el servicio de geocodificación
+     */
+    direccionNormalizada?: string | null;
+    /**
+     * Barrio detectado automáticamente
+     */
+    barrio?: string | null;
+    localidad?: string | null;
+    /**
+     * Coordenadas geoespaciales (lat, lng) - índice 2dsphere
+     *
+     * @minItems 2
+     * @maxItems 2
+     */
+    location?: [number, number] | null;
+  };
+  /**
+   * ⚠️ Deprecado - usar ubicacion.direccionIngresada
    */
   calle?: string | null;
   /**
-   * Coordenadas geográficas del reclamo
+   * ⚠️ Deprecado - usar ubicacion.location
    */
   coordenadas?: {
     lat?: number | null;
@@ -247,6 +299,10 @@ export interface Reclamo {
         estado: 'pendiente' | 'en_proceso' | 'resuelto' | 'rechazado';
         nota: string;
         fecha: string;
+        /**
+         * Fotos o videos adjuntos al cambio de estado
+         */
+        adjuntos?: (string | Media)[] | null;
         usuario: string | User;
         id?: string | null;
       }[]
@@ -262,7 +318,7 @@ export interface Contribuyente {
   id: string;
   nombre: string;
   apellido: string;
-  dni: string;
+  dni?: string | null;
   telefono?: string | null;
   email?: string | null;
   direccion?: string | null;
@@ -363,6 +419,7 @@ export interface UsersSelect<T extends boolean = true> {
   nombre?: T;
   apellido?: T;
   role?: T;
+  areas?: T;
   area?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -422,8 +479,21 @@ export interface ReclamosSelect<T extends boolean = true> {
   medio?: T;
   area_receptora?: T;
   area_derivada?: T;
+  categoria?: T;
+  subcategoria?: T;
   prioridad?: T;
+  fechaCompromiso?: T;
+  diasResolucionEstimados?: T;
   estado?: T;
+  ubicacion?:
+    | T
+    | {
+        direccionIngresada?: T;
+        direccionNormalizada?: T;
+        barrio?: T;
+        localidad?: T;
+        location?: T;
+      };
   calle?: T;
   coordenadas?:
     | T
@@ -440,6 +510,7 @@ export interface ReclamosSelect<T extends boolean = true> {
         estado?: T;
         nota?: T;
         fecha?: T;
+        adjuntos?: T;
         usuario?: T;
         id?: T;
       };

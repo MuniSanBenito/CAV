@@ -2,13 +2,9 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import {
-  IconArrowLeft,
-  IconFilter,
-  IconCurrentLocation,
-  IconRefresh,
-} from '@tabler/icons-react'
+import { IconArrowLeft, IconFilter, IconCurrentLocation, IconRefresh } from '@tabler/icons-react'
 import { estadoLabel, estadoBadgeClass, prioridadLabel, tipoLabel } from '@/lib/constants'
+import AddressSearch from '@/components/AddressSearch'
 
 interface Coords {
   lat: number
@@ -54,9 +50,12 @@ export default function MapaReclamosClient() {
   const fetchReclamos = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/reclamos?limit=0&depth=1&select[numero]=true&select[tipo]=true&select[estado]=true&select[prioridad]=true&select[calle]=true&select[descripcion]=true&select[coordenadas]=true&select[area_derivada]=true&select[createdAt]=true', {
-        credentials: 'include',
-      })
+      const res = await fetch(
+        '/api/reclamos?limit=0&depth=1&select[numero]=true&select[tipo]=true&select[estado]=true&select[prioridad]=true&select[calle]=true&select[descripcion]=true&select[coordenadas]=true&select[area_derivada]=true&select[createdAt]=true',
+        {
+          credentials: 'include',
+        },
+      )
       const data = await res.json()
       if (data?.docs) {
         setReclamos(data.docs)
@@ -135,9 +134,7 @@ export default function MapaReclamosClient() {
     const L = LRef.current
     markersLayerRef.current.clearLayers()
 
-    let filtered = reclamos.filter(
-      (r) => r.coordenadas?.lat && r.coordenadas?.lng
-    )
+    let filtered = reclamos.filter((r) => r.coordenadas?.lat && r.coordenadas?.lng)
     if (filterEstado) {
       filtered = filtered.filter((r) => r.estado === filterEstado)
     }
@@ -150,17 +147,14 @@ export default function MapaReclamosClient() {
       const areaName = typeof r.area_derivada === 'object' ? r.area_derivada?.nombre : ''
 
       // Create colored circle marker
-      const circleMarker = L.circleMarker(
-        [r.coordenadas!.lat, r.coordenadas!.lng],
-        {
-          radius: 8,
-          fillColor: color,
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.85,
-        }
-      )
+      const circleMarker = L.circleMarker([r.coordenadas!.lat, r.coordenadas!.lng], {
+        radius: 8,
+        fillColor: color,
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85,
+      })
 
       circleMarker.bindPopup(`
         <div style="font-family:'Outfit',system-ui,sans-serif;min-width:200px">
@@ -216,9 +210,21 @@ export default function MapaReclamosClient() {
         </Link>
       </div>
 
-      {/* Filter toolbar */}
+      {/* Filter toolbar with address search */}
       <div className="reclamos-toolbar">
         <div className="reclamos-filters">
+          {/* Buscador de dirección */}
+          <div className="reclamos-filter-group" style={{ minWidth: '300px' }}>
+            <AddressSearch
+              placeholder="Buscar dirección en San Benito..."
+              onSelect={(result) => {
+                if (mapRef.current) {
+                  mapRef.current.setView([result.lat, result.lng], 16)
+                }
+              }}
+            />
+          </div>
+
           <div className="reclamos-filter-group">
             <IconFilter size={16} />
             <select
@@ -246,14 +252,14 @@ export default function MapaReclamosClient() {
               <option value="consulta">Consulta</option>
             </select>
           </div>
-          <button className="reclamos-refresh-btn" onClick={centerMap} title="Centrar en San Benito">
-            <IconCurrentLocation size={18} />
-          </button>
           <button
             className="reclamos-refresh-btn"
-            onClick={fetchReclamos}
-            title="Actualizar"
+            onClick={centerMap}
+            title="Centrar en San Benito"
           >
+            <IconCurrentLocation size={18} />
+          </button>
+          <button className="reclamos-refresh-btn" onClick={fetchReclamos} title="Actualizar">
             <IconRefresh size={18} className={loading ? 'spin-animation' : ''} />
           </button>
         </div>
@@ -263,10 +269,7 @@ export default function MapaReclamosClient() {
       <div className="mapa-legend">
         {Object.entries(ESTADO_COLORS).map(([key, color]) => (
           <div key={key} className="mapa-legend-item">
-            <span
-              className="mapa-legend-dot"
-              style={{ background: color }}
-            />
+            <span className="mapa-legend-dot" style={{ background: color }} />
             <span>{estadoLabel[key]}</span>
           </div>
         ))}

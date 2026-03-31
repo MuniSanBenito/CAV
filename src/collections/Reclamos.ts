@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { isAdmin, authenticated } from '../access/roles'
+import { geocodeAddress, extractBarrio, extractLocalidad } from '../lib/geocoding'
 
 export const Reclamos: CollectionConfig = {
   slug: 'reclamos',
@@ -9,20 +10,30 @@ export const Reclamos: CollectionConfig = {
     group: 'Gestión',
   },
   access: {
-    create: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'carga' || user?.role === 'ejecutor',
+    create: ({ req: { user } }) =>
+      user?.role === 'admin' || user?.role === 'carga' || user?.role === 'ejecutor',
+    // Read access: admin, carga, visualizador = todo; ejecutor = solo sus áreas
     read: ({ req: { user } }) => {
       if (!user) return false
-      if (user.role === 'admin' || user.role === 'carga' || user.role === 'visualizador') return true
-      if (user.role === 'ejecutor' && user.area) {
-        return { area_derivada: { equals: typeof user.area === 'string' ? user.area : user.area.id } }
+      if (user.role === 'admin' || user.role === 'carga' || user.role === 'visualizador')
+        return true
+      if (user.role === 'ejecutor' && user.areas && user.areas.length > 0) {
+        const areaIds = user.areas.map((a) => (typeof a === 'string' ? a : a.id))
+        return {
+          area_derivada: { in: areaIds },
+        }
       }
       return false
     },
+    // Update access: admin, carga = todo; ejecutor = solo sus áreas
     update: ({ req: { user } }) => {
       if (!user) return false
       if (user.role === 'admin' || user.role === 'carga') return true
-      if (user.role === 'ejecutor' && user.area) {
-        return { area_derivada: { equals: typeof user.area === 'string' ? user.area : user.area.id } }
+      if (user.role === 'ejecutor' && user.areas && user.areas.length > 0) {
+        const areaIds = user.areas.map((a) => (typeof a === 'string' ? a : a.id))
+        return {
+          area_derivada: { in: areaIds },
+        }
       }
       return false
     },
@@ -98,6 +109,31 @@ export const Reclamos: CollectionConfig = {
       },
     },
     {
+      name: 'categoria',
+      type: 'select',
+      required: true,
+      defaultValue: 'general',
+      options: [
+        { label: 'General', value: 'general' },
+        { label: 'Alumbrado Público', value: 'alumbrado' },
+        { label: 'Pavimento / Calles', value: 'pavimento' },
+        { label: 'Higiene / Limpieza', value: 'higiene' },
+        { label: 'Pluviales / Drenaje', value: 'pluviales' },
+        { label: 'Espacios Verdes', value: 'verdes' },
+        { label: 'Tránsito / Señalización', value: 'transito' },
+        { label: 'Ruidos Molestos', value: 'ruidos' },
+        { label: 'Convivencia / Seguridad', value: 'convivencia' },
+        { label: 'Servicios Públicos', value: 'servicios' },
+      ],
+    },
+    {
+      name: 'subcategoria',
+      type: 'text',
+      admin: {
+        description: 'Especificación adicional de la categoría',
+      },
+    },
+    {
       name: 'prioridad',
       type: 'select',
       required: true,
@@ -108,6 +144,21 @@ export const Reclamos: CollectionConfig = {
         { label: 'Alta', value: 'alta' },
         { label: 'Urgente', value: 'urgente' },
       ],
+    },
+    {
+      name: 'fechaCompromiso',
+      type: 'date',
+      admin: {
+        description: 'Fecha estimada de resolución (SLA)',
+      },
+    },
+    {
+      name: 'diasResolucionEstimados',
+      type: 'number',
+      defaultValue: 7,
+      admin: {
+        description: 'Días estimados para resolver el reclamo',
+      },
     },
     {
       name: 'estado',
@@ -121,15 +172,75 @@ export const Reclamos: CollectionConfig = {
         { label: 'Rechazado', value: 'rechazado' },
       ],
     },
+    // NUEVO: Ubicación con geocodificación automática
+    {
+      name: 'ubicacion',
+      type: 'group',
+      admin: {
+        description: 'Datos de ubicación geocodificada',
+      },
+      fields: [
+        {
+          name: 'direccionIngresada',
+          type: 'text',
+          admin: {
+            description: 'Dirección tal como la ingresó el usuario',
+          },
+        },
+        {
+          name: 'direccionNormalizada',
+          type: 'text',
+          index: true,
+          admin: {
+            description: 'Dirección normalizada por el servicio de geocodificación',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'barrio',
+          type: 'text',
+          index: true,
+          admin: {
+            description: 'Barrio detectado automáticamente',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'localidad',
+          type: 'text',
+          admin: {
+            readOnly: true,
+          },
+        },
+        {
+          name: 'location',
+          type: 'point',
+          index: true,
+          admin: {
+            description: 'Coordenadas geoespaciales (lat, lng) - índice 2dsphere',
+          },
+        },
+      ],
+    },
+    // LEGACY: Mantener calle para compatibilidad, migrar a ubicacion.direccionIngresada
     {
       name: 'calle',
       type: 'text',
-      admin: { description: 'Calle y número de la ubicación del reclamo' },
+      admin: {
+        description: '⚠️ Deprecado - usar ubicacion.direccionIngresada',
+        position: 'sidebar',
+        condition: () => false,
+      },
     },
+    // LEGACY: Coordenadas legacy
     {
       name: 'coordenadas',
       type: 'group',
-      admin: { description: 'Coordenadas geográficas del reclamo' },
+      admin: {
+        description: '⚠️ Deprecado - usar ubicacion.location',
+        position: 'sidebar',
+        condition: () => false,
+      },
       fields: [
         {
           name: 'lat',
@@ -193,6 +304,15 @@ export const Reclamos: CollectionConfig = {
           required: true,
         },
         {
+          name: 'adjuntos',
+          type: 'upload',
+          relationTo: 'media',
+          hasMany: true,
+          admin: {
+            description: 'Fotos o videos adjuntos al cambio de estado',
+          },
+        },
+        {
           name: 'usuario',
           type: 'relationship',
           relationTo: 'users',
@@ -207,7 +327,9 @@ export const Reclamos: CollectionConfig = {
         if (operation === 'create') {
           // FIX #1: Atomic counter — use MongoDB findOneAndUpdate to avoid race conditions
           const db = req.payload.db
-          const mongoose = (db as unknown as { connection: { db: { collection: (name: string) => unknown } } }).connection.db
+          const mongoose = (
+            db as unknown as { connection: { db: { collection: (name: string) => unknown } } }
+          ).connection.db
           const countersCollection = mongoose.collection('counters') as {
             findOneAndUpdate: (
               filter: Record<string, unknown>,
@@ -223,17 +345,24 @@ export const Reclamos: CollectionConfig = {
           if (data) {
             ;(data as Record<string, unknown>).numero = result.value?.seq ?? 1
 
-            // Force area_derivada for ejecutor
-            if (req.user?.role === 'ejecutor' && req.user.area) {
+            // Force area_derivada for ejecutor - usa la primera area si tiene múltiples
+            if (req.user?.role === 'ejecutor' && req.user.areas && req.user.areas.length > 0) {
+              const firstArea = req.user.areas[0]
               ;(data as Record<string, unknown>).area_derivada =
-                typeof req.user.area === 'string' ? req.user.area : req.user.area.id
+                typeof firstArea === 'string' ? firstArea : firstArea.id
             }
           }
         }
-        if (operation === 'update' && req.user?.role === 'ejecutor' && req.user.area) {
+        if (
+          operation === 'update' &&
+          req.user?.role === 'ejecutor' &&
+          req.user.areas &&
+          req.user.areas.length > 0
+        ) {
           if (data) {
+            const firstArea = req.user.areas[0]
             ;(data as Record<string, unknown>).area_derivada =
-              typeof req.user.area === 'string' ? req.user.area : req.user.area.id
+              typeof firstArea === 'string' ? firstArea : firstArea.id
           }
         }
         return data
@@ -243,9 +372,36 @@ export const Reclamos: CollectionConfig = {
       async ({ req, operation, data, originalDoc }) => {
         if (operation === 'create' && req.user) {
           data.creadoPor = req.user.id
-          // Auto-set area_receptora from user's area if available
-          if (req.user.area && !data.area_receptora) {
-            data.area_receptora = typeof req.user.area === 'string' ? req.user.area : req.user.area.id
+          // Auto-set area_receptora from user's first area if available
+          if (req.user.areas && req.user.areas.length > 0 && !data.area_receptora) {
+            const firstArea = req.user.areas[0]
+            data.area_receptora = typeof firstArea === 'string' ? firstArea : firstArea.id
+          }
+        }
+
+        // Geocodificación automática de dirección
+        const ubicacionData = data.ubicacion as Record<string, unknown> | undefined
+        const direccionIngresada = ubicacionData?.direccionIngresada as string | undefined
+
+        if (direccionIngresada && (!ubicacionData?.location || operation === 'create')) {
+          try {
+            const geoResult = await geocodeAddress(direccionIngresada)
+            if (geoResult) {
+              data.ubicacion = {
+                ...ubicacionData,
+                direccionIngresada,
+                direccionNormalizada: geoResult.displayName,
+                barrio: extractBarrio(geoResult.address),
+                localidad: extractLocalidad(geoResult.address),
+                location: {
+                  type: 'Point',
+                  coordinates: [geoResult.lng, geoResult.lat], // [lng, lat] for GeoJSON
+                },
+              }
+            }
+          } catch (error) {
+            console.error('Error en geocodificación:', error)
+            // No fallar la operación si la geocodificación falla
           }
         }
 
@@ -278,4 +434,10 @@ export const Reclamos: CollectionConfig = {
       },
     ],
   },
+  // Índices para optimizar queries frecuentes
+  indexes: [
+    { fields: ['estado', 'area_derivada'] },
+    { fields: ['ubicacion.location'] },
+    { fields: ['estado', 'prioridad', 'createdAt'] },
+  ],
 }

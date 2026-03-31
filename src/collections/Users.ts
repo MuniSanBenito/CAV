@@ -6,7 +6,7 @@ export const Users: CollectionConfig = {
   auth: true,
   admin: {
     useAsTitle: 'email',
-    defaultColumns: ['email', 'nombre', 'apellido', 'role', 'area'],
+    defaultColumns: ['email', 'nombre', 'apellido', 'role', 'areas'],
     group: 'Configuración',
   },
   access: {
@@ -44,13 +44,24 @@ export const Users: CollectionConfig = {
       },
     },
     {
+      name: 'areas',
+      type: 'relationship',
+      relationTo: 'areas',
+      hasMany: true,
+      saveToJWT: true,
+      admin: {
+        description: 'Áreas asignadas al usuario (puede tener varias)',
+      },
+    },
+    // DEPRECATED: campo area legacy para compatibilidad, migrar a areas
+    {
       name: 'area',
       type: 'relationship',
       relationTo: 'areas',
-      required: true,
-      saveToJWT: true,
       admin: {
-        description: 'Área a la que pertenece el usuario',
+        description: '⚠️ Deprecado - usar "areas" en su lugar',
+        position: 'sidebar',
+        condition: () => false, // Oculto en UI
       },
     },
   ],
