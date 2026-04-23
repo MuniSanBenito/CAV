@@ -11,7 +11,7 @@ import {
   IconCircleCheck,
   IconSend,
   IconAlertCircle,
-  IconHistory
+  IconHistory,
 } from '@tabler/icons-react'
 import { estadoLabel, estadoBadgeClass, prioridadLabel } from '@/lib/constants'
 
@@ -23,7 +23,7 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
   const [reclamo, setReclamo] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  
+
   // Update state
   const [nuevoEstado, setNuevoEstado] = useState('')
   const [nuevaNota, setNuevaNota] = useState('')
@@ -35,15 +35,15 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
     try {
       setLoading(true)
       const [reclamoRes, userRes] = await Promise.all([
-        fetch(`/api/reclamos/${id}?depth=2`, { credentials: 'include' }).then(r => r.json()),
-        fetch('/api/users/me', { credentials: 'include' }).then(r => r.json())
+        fetch(`/api/reclamos/${id}?depth=2`, { credentials: 'include' }).then((r) => r.json()),
+        fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
       ])
-      
+
       if (reclamoRes && !reclamoRes.errors) {
         setReclamo(reclamoRes)
         setNuevoEstado(reclamoRes.estado || 'pendiente')
       }
-      
+
       if (userRes?.user) {
         setUser(userRes.user)
       }
@@ -63,7 +63,7 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
     e.preventDefault()
     setError('')
     setSuccessMsg('')
-    
+
     if (!nuevaNota.trim()) {
       setError('Debes incluir una nota explicando el cambio o la actualización.')
       return
@@ -78,18 +78,18 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
           nota: nuevaNota.trim(),
         },
       }
-      
+
       const res = await fetch(`/api/reclamos/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       })
 
       if (!res.ok) {
         throw new Error('No se pudo actualizar el estado.')
       }
-      
+
       setSuccessMsg('Estado y nota actualizados correctamente.')
       setNuevaNota('')
       fetchDetail() // Reload to get the new history
@@ -112,7 +112,11 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
     return (
       <div className="nuevo-reclamo-page">
         <div className="nuevo-header">
-          <button type="button" className="nuevo-back-btn" onClick={() => router.push('/dashboard/reclamos')}>
+          <button
+            type="button"
+            className="nuevo-back-btn"
+            onClick={() => router.push('/dashboard/reclamos')}
+          >
             <IconArrowLeft size={20} />
             Volver
           </button>
@@ -127,47 +131,73 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
   return (
     <div className="nuevo-reclamo-page">
       <div className="nuevo-header">
-        <button type="button" className="nuevo-back-btn" onClick={() => router.push('/dashboard/reclamos')}>
+        <button
+          type="button"
+          className="nuevo-back-btn"
+          onClick={() => router.push('/dashboard/reclamos')}
+        >
           <IconArrowLeft size={20} />
           Volver
         </button>
         <div>
           <h1 className="nuevo-title">Reclamo #{reclamo.numero}</h1>
           <p className="nuevo-subtitle">
-            Cargado el {new Date(reclamo.createdAt).toLocaleDateString()} a las {new Date(reclamo.createdAt).toLocaleTimeString()}
+            Cargado el {new Date(reclamo.createdAt).toLocaleDateString()} a las{' '}
+            {new Date(reclamo.createdAt).toLocaleTimeString()}
           </p>
         </div>
       </div>
 
-      <div className="modal-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
-        
+      <div
+        className="modal-row"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '2rem',
+          alignItems: 'start',
+        }}
+      >
         {/* LADO IZQUIERDO: DETALLES */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
           {/* Tarjeta Info */}
           <div className="nuevo-section" style={{ margin: 0 }}>
             <div className="nuevo-section-header">
               <IconNotes size={20} stroke={1.5} />
               <span>Información Principal</span>
             </div>
-            <div style={{ padding: '1rem', background: 'var(--theme-elevation-50)', borderRadius: 'var(--border-radius-m)' }}>
+            <div
+              style={{
+                padding: '1rem',
+                background: 'var(--theme-elevation-50)',
+                borderRadius: 'var(--border-radius-m)',
+              }}
+            >
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                 <span className={`dash-badge ${estadoBadge[reclamo.estado] || ''}`}>
                   {estadoLabel[reclamo.estado] || reclamo.estado}
                 </span>
-                <span className={`dash-badge dash-badge--outline`}>
-                  {reclamo.tipo}
-                </span>
+                <span className={`dash-badge dash-badge--outline`}>{reclamo.tipo}</span>
                 <span className={`dash-badge`}>
                   Prioridad {prioridadLabel[reclamo.prioridad] || reclamo.prioridad}
                 </span>
               </div>
-              <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}><strong>{reclamo.descripcion}</strong></p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--theme-text-muted)' }}>
+              <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>
+                <strong>{reclamo.descripcion}</strong>
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: 'var(--theme-text-muted)',
+                }}
+              >
                 {contribuyente && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <IconUser size={16} /> Contribuyente: {contribuyente.nombre} {contribuyente.apellido} (DNI: {contribuyente.dni})
+                    <IconUser size={16} /> Contribuyente: {contribuyente.nombre}{' '}
+                    {contribuyente.apellido} (DNI: {contribuyente.dni})
                   </div>
                 )}
                 {reclamo.calle && (
@@ -177,7 +207,8 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                 )}
                 {area_derivada && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <IconArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} /> Derivado a: {area_derivada.nombre}
+                    <IconArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} /> Derivado a:{' '}
+                    {area_derivada.nombre}
                   </div>
                 )}
                 {area_receptora && (
@@ -187,14 +218,22 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                 )}
               </div>
             </div>
-            
+
             {reclamo.observaciones && (
-              <div style={{ marginTop: '1rem', padding: '1rem', background: '#fff3cd', color: '#856404', borderRadius: 'var(--border-radius-m)' }}>
+              <div
+                style={{
+                  marginTop: '1rem',
+                  padding: '1rem',
+                  background: '#fff3cd',
+                  color: '#856404',
+                  borderRadius: 'var(--border-radius-m)',
+                }}
+              >
                 <strong>Observaciones internas del alta:</strong> {reclamo.observaciones}
               </div>
             )}
           </div>
-          
+
           {/* Fotos (si existen) */}
           {reclamo.fotos && reclamo.fotos.length > 0 && (
             <div className="nuevo-section" style={{ margin: 0 }}>
@@ -204,38 +243,66 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 {reclamo.fotos.map((foto: any) => (
                   <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
-                    <img 
-                      src={foto.url} 
-                      alt="Archivo adjunto" 
-                      style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: 'var(--border-radius-s)', border: '1px solid var(--theme-border)' }} 
+                    <img
+                      src={foto.url}
+                      alt="Archivo adjunto"
+                      style={{
+                        width: '120px',
+                        height: '120px',
+                        objectFit: 'cover',
+                        borderRadius: 'var(--border-radius-s)',
+                        border: '1px solid var(--theme-border)',
+                      }}
                     />
                   </a>
                 ))}
               </div>
             </div>
           )}
-
         </div>
 
         {/* LADO DERECHO: HISTORIAL Y CAMBIO ESTADO */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
           <div className="nuevo-section" style={{ margin: 0 }}>
             <div className="nuevo-section-header">
               <IconHistory size={20} stroke={1.5} />
               <span>Historial y Seguimiento</span>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {(!reclamo.movimientos || reclamo.movimientos.length === 0) ? (
-                <div style={{ color: 'var(--theme-text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>
+              {!reclamo.movimientos || reclamo.movimientos.length === 0 ? (
+                <div
+                  style={{
+                    color: 'var(--theme-text-muted)',
+                    fontStyle: 'italic',
+                    fontSize: '0.9rem',
+                  }}
+                >
                   No hay movimientos registrados.
                 </div>
               ) : (
                 reclamo.movimientos.map((mov: any, idx: number) => (
-                  <div key={idx} style={{ padding: '0.75rem', background: 'var(--theme-elevation-50)', borderRadius: 'var(--border-radius-s)', borderLeft: '3px solid var(--theme-primary)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
-                      <span className={`dash-badge ${estadoBadge[mov.estado] || ''}`} style={{ padding: '0.1rem 0.5rem', fontSize: '0.75rem' }}>
+                  <div
+                    key={idx}
+                    style={{
+                      padding: '0.75rem',
+                      background: 'var(--theme-elevation-50)',
+                      borderRadius: 'var(--border-radius-s)',
+                      borderLeft: '3px solid var(--theme-primary)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.5rem',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      <span
+                        className={`dash-badge ${estadoBadge[mov.estado] || ''}`}
+                        style={{ padding: '0.1rem 0.5rem', fontSize: '0.75rem' }}
+                      >
                         {estadoLabel[mov.estado] || mov.estado}
                       </span>
                       <span style={{ color: 'var(--theme-text-muted)' }}>
@@ -244,7 +311,13 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                     </div>
                     <p style={{ margin: 0, fontSize: '0.95rem' }}>{mov.nota}</p>
                     {mov.usuario && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--theme-text-muted)' }}>
+                      <div
+                        style={{
+                          marginTop: '0.5rem',
+                          fontSize: '0.8rem',
+                          color: 'var(--theme-text-muted)',
+                        }}
+                      >
                         Por: {mov.usuario.nombre} {mov.usuario.apellido}
                       </div>
                     )}
@@ -253,60 +326,88 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
               )}
             </div>
           </div>
-          
-          <div className="nuevo-section" style={{ margin: 0 }}>
-            <div className="nuevo-section-header">
-              <span>Actualizar Estado / Agregar Nota</span>
-            </div>
-            
-            <form onSubmit={handleStatusUpdate} className="nuevo-form" style={{ gap: '1rem' }}>
-              {error && (
-                <div className="modal-error">
-                  <IconAlertCircle size={18} /><span>{error}</span>
-                </div>
-              )}
-              {successMsg && (
-                <div style={{ padding: '0.75rem', background: '#d4edda', color: '#155724', borderRadius: 'var(--border-radius-s)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-                  <IconCircleCheck size={18} /><span>{successMsg}</span>
-                </div>
-              )}
-              
-              <div className="modal-field">
-                <label className="modal-label">Nuevo Estado <span className="modal-required">*</span></label>
-                <select className="modal-select" value={nuevoEstado} onChange={e => setNuevoEstado(e.target.value)}>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="en_proceso">En Proceso</option>
-                  <option value="resuelto">Resuelto</option>
-                  <option value="rechazado">Rechazado</option>
-                </select>
-              </div>
-              
-              <div className="modal-field">
-                <label className="modal-label">Nota o Descripción del movimiento <span className="modal-required">*</span></label>
-                <textarea 
-                  className="modal-textarea" 
-                  rows={3}
-                  value={nuevaNota}
-                  onChange={e => setNuevaNota(e.target.value)}
-                  placeholder="Detalles sobre por qué cambió el estado o el progreso actual..."
-                  required
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className={`dash-action-btn dash-action-btn--primary ${submitting ? 'dash-action-btn--loading' : ''}`}
-                disabled={submitting || !nuevaNota.trim()}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                {submitting ? <span className="loading loading-spinner loading-sm" /> : <><IconSend size={18} />Guardar Movimiento</>}
-              </button>
-            </form>
-          </div>
 
+          {user?.role !== 'visualizador' && (
+            <div className="nuevo-section" style={{ margin: 0 }}>
+              <div className="nuevo-section-header">
+                <span>Actualizar Estado / Agregar Nota</span>
+              </div>
+
+              <form onSubmit={handleStatusUpdate} className="nuevo-form" style={{ gap: '1rem' }}>
+                {error && (
+                  <div className="modal-error">
+                    <IconAlertCircle size={18} />
+                    <span>{error}</span>
+                  </div>
+                )}
+                {successMsg && (
+                  <div
+                    style={{
+                      padding: '0.75rem',
+                      background: '#d4edda',
+                      color: '#155724',
+                      borderRadius: 'var(--border-radius-s)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <IconCircleCheck size={18} />
+                    <span>{successMsg}</span>
+                  </div>
+                )}
+
+                <div className="modal-field">
+                  <label className="modal-label">
+                    Nuevo Estado <span className="modal-required">*</span>
+                  </label>
+                  <select
+                    className="modal-select"
+                    value={nuevoEstado}
+                    onChange={(e) => setNuevoEstado(e.target.value)}
+                  >
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="resuelto">Resuelto</option>
+                    <option value="rechazado">Rechazado</option>
+                  </select>
+                </div>
+
+                <div className="modal-field">
+                  <label className="modal-label">
+                    Nota o Descripción del movimiento <span className="modal-required">*</span>
+                  </label>
+                  <textarea
+                    className="modal-textarea"
+                    rows={3}
+                    value={nuevaNota}
+                    onChange={(e) => setNuevaNota(e.target.value)}
+                    placeholder="Detalles sobre por qué cambió el estado o el progreso actual..."
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className={`dash-action-btn dash-action-btn--primary ${submitting ? 'dash-action-btn--loading' : ''}`}
+                  disabled={submitting || !nuevaNota.trim()}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {submitting ? (
+                    <span className="loading loading-spinner loading-sm" />
+                  ) : (
+                    <>
+                      <IconSend size={18} />
+                      Guardar Movimiento
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
-      
     </div>
   )
 }

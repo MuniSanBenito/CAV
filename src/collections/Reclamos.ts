@@ -335,15 +335,19 @@ export const Reclamos: CollectionConfig = {
               filter: Record<string, unknown>,
               update: Record<string, unknown>,
               options: Record<string, unknown>,
-            ) => Promise<{ value: { seq: number } | null }>
+            ) => Promise<{ value: { seq: number } | null } | { seq: number } | null>
           }
           const result = await countersCollection.findOneAndUpdate(
             { _id: 'reclamo_numero' },
             { $inc: { seq: 1 } },
             { upsert: true, returnDocument: 'after' },
           )
+          // MongoDB driver v6+ returns the document directly; older versions wrap it in { value }
+          const counterDoc = (result && 'value' in result ? result.value : result) as {
+            seq: number
+          } | null
           if (data) {
-            ;(data as Record<string, unknown>).numero = result.value?.seq ?? 1
+            ;(data as Record<string, unknown>).numero = counterDoc?.seq ?? 1
 
             // Force area_derivada for ejecutor - usa la primera area si tiene múltiples
             if (req.user?.role === 'ejecutor' && req.user.areas && req.user.areas.length > 0) {

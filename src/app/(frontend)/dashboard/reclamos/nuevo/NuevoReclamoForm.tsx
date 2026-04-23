@@ -153,6 +153,10 @@ export default function NuevoReclamoForm({
     ])
       .then(([userData, areasData]) => {
         if (userData?.user) {
+          if (userData.user.role === 'visualizador') {
+            router.replace('/dashboard/reclamos')
+            return
+          }
           setUser(userData.user)
           if (userData.user.role === 'ejecutor') {
             const userAreaId =

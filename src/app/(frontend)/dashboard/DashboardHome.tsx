@@ -49,7 +49,11 @@ const estadoBadge = estadoBadgeClass
 export default function DashboardHome() {
   const [user, setUser] = useState<DashUser | null>(null)
   const [stats, setStats] = useState<ReclamoStats>({
-    pendiente: 0, en_proceso: 0, resuelto: 0, rechazado: 0, total: 0,
+    pendiente: 0,
+    en_proceso: 0,
+    resuelto: 0,
+    rechazado: 0,
+    total: 0,
   })
   const [recent, setRecent] = useState<ReclamoRecent[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,7 +62,9 @@ export default function DashboardHome() {
     Promise.all([
       fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
       fetch('/api/stats', { credentials: 'include' }).then((r) => r.json()),
-      fetch('/api/reclamos?limit=5&sort=-createdAt', { credentials: 'include' }).then((r) => r.json()),
+      fetch('/api/reclamos?limit=5&sort=-createdAt', { credentials: 'include' }).then((r) =>
+        r.json(),
+      ),
     ])
       .then(([userData, statsData, recentData]) => {
         if (userData?.user) {
@@ -101,19 +107,22 @@ export default function DashboardHome() {
           <h1 className="dash-welcome-title">
             {greeting()}, <span className="dash-welcome-name">{user?.nombre || 'usuario'}</span>
           </h1>
-          <p className="dash-welcome-sub">
-            Panel de gestión del Centro de Atención al Vecino
-          </p>
+          <p className="dash-welcome-sub">Panel de gestión del Centro de Atención al Vecino</p>
         </div>
         <div className="dash-welcome-actions">
           <Link href="/dashboard/reclamos" className="dash-action-btn dash-action-btn--secondary">
             <IconFileDescription size={18} />
             Ver Reclamos
           </Link>
-          <Link href="/dashboard/reclamos/nuevo" className="dash-action-btn dash-action-btn--primary">
-            <IconPlus size={18} />
-            Nuevo Reclamo
-          </Link>
+          {user?.role !== 'visualizador' && (
+            <Link
+              href="/dashboard/reclamos/nuevo"
+              className="dash-action-btn dash-action-btn--primary"
+            >
+              <IconPlus size={18} />
+              Nuevo Reclamo
+            </Link>
+          )}
         </div>
       </div>
 
@@ -125,9 +134,7 @@ export default function DashboardHome() {
               <cfg.icon size={24} stroke={1.5} />
             </div>
             <div className="stat-card-data">
-              <span className="stat-card-number">
-                {stats[key as keyof ReclamoStats]}
-              </span>
+              <span className="stat-card-number">{stats[key as keyof ReclamoStats]}</span>
               <span className="stat-card-label">{cfg.label}</span>
             </div>
           </div>
@@ -150,17 +157,31 @@ export default function DashboardHome() {
           <div className="dash-empty">
             <IconFileDescription size={48} stroke={1} className="dash-empty-icon" />
             <p>No hay reclamos cargados aún.</p>
-            <Link href="/dashboard/reclamos/nuevo" className="dash-action-btn dash-action-btn--primary">
-              <IconPlus size={18} />
-              Cargar primer reclamo
-            </Link>
+            {user?.role !== 'visualizador' && (
+              <Link
+                href="/dashboard/reclamos/nuevo"
+                className="dash-action-btn dash-action-btn--primary"
+              >
+                <IconPlus size={18} />
+                Cargar primer reclamo
+              </Link>
+            )}
           </div>
         ) : (
           <div className="dash-recent-list">
             {recent.map((r) => (
               <div key={r.id} className="dash-recent-item">
                 <div className="dash-recent-item-info">
-                  <span className="dash-recent-item-title">#{r.numero} — {r.tipo === 'reclamo' ? 'Reclamo' : r.tipo === 'sugerencia' ? 'Sugerencia' : r.tipo === 'denuncia' ? 'Denuncia' : 'Consulta'}</span>
+                  <span className="dash-recent-item-title">
+                    #{r.numero} —{' '}
+                    {r.tipo === 'reclamo'
+                      ? 'Reclamo'
+                      : r.tipo === 'sugerencia'
+                        ? 'Sugerencia'
+                        : r.tipo === 'denuncia'
+                          ? 'Denuncia'
+                          : 'Consulta'}
+                  </span>
                   <span className="dash-recent-item-date">
                     {new Date(r.createdAt).toLocaleDateString('es-AR', {
                       day: 'numeric',

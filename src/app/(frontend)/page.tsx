@@ -1,8 +1,27 @@
 import React from 'react'
+import { headers as nextHeaders } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { getPayload } from 'payload'
+import config from '@payload-config'
 import { IconShieldLock, IconUserCircle, IconArrowRight } from '@tabler/icons-react'
 import './styles.css'
 
 export default async function HomePage() {
+  // Si ya hay sesión, redirigir al destino según rol.
+  // Importante: el redirect() de Next tira una excepción especial,
+  // por eso lo ejecutamos fuera del try/catch.
+  let redirectTo: string | null = null
+  try {
+    const payload = await getPayload({ config })
+    const { user } = await payload.auth({ headers: await nextHeaders() })
+    if (user) {
+      redirectTo = user.role === 'ejecutor' ? '/mis-reclamos' : '/dashboard'
+    }
+  } catch {
+    // Si falla la verificación, cae a la vista pública
+  }
+  if (redirectTo) redirect(redirectTo)
+
   return (
     <div className="home-layout">
       {/* Decorative background shapes */}
@@ -22,7 +41,10 @@ export default async function HomePage() {
             <br />
             Atención al Vecino
           </h1>
-          <p className="home-subtitle">Plataforma de gestión, carga y resolución de reclamos y expedientes para el personal municipal de San Benito.</p>
+          <p className="home-subtitle">
+            Plataforma de gestión, carga y resolución de reclamos y expedientes para el personal
+            municipal de San Benito.
+          </p>
         </header>
 
         {/* Unified Portal Access */}
@@ -49,7 +71,9 @@ export default async function HomePage() {
 
       {/* Footer with hidden admin link */}
       <footer className="home-footer-clean">
-        <p>© {new Date().getFullYear()} Municipalidad de San Benito. Todos los derechos reservados.</p>
+        <p>
+          © {new Date().getFullYear()} Municipalidad de San Benito. Todos los derechos reservados.
+        </p>
         <div className="admin-link-wrapper">
           <a href="/admin" className="admin-link-hidden">
             <IconShieldLock size={14} stroke={1.5} />
