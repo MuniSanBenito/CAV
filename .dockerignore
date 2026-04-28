@@ -1,0 +1,54 @@
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Dependencies
+node_modules
+
+# Build artifacts
+.next/
+out/
+build/
+dist/
+
+# Cache
+.turbo/
+.swc/
+.cache/
+*.log
+
+# Testing
+coverage/
+*.test.*
+*.spec.*
+tests/
+
+# Environment files
+.env*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docs
+*.md
+docs/
+
+# CI/CD
+.github/
+
+# Payload specific
+.payload/
