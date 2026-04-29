@@ -2,6 +2,10 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { IconMapPin, IconCurrentLocation } from '@tabler/icons-react'
+import 'leaflet/dist/leaflet.css'
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
+import iconUrl from 'leaflet/dist/images/marker-icon.png'
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 interface Coords {
   lat: number
@@ -77,25 +81,14 @@ export default function UbicacionMap({
     let cancelled = false
 
     async function init() {
-      // Load Leaflet CSS dynamically (reliable way)
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link')
-        link.id = 'leaflet-css'
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
-        // Wait a tick for styles to apply
-        await new Promise((resolve) => setTimeout(resolve, 100))
-      }
-
       const L = await import('leaflet')
 
-      // Fix default marker icon paths
+      // Fix default marker icon paths (assets bundled by Next, no CDN)
       delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
       L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconRetinaUrl: (iconRetinaUrl as { src: string }).src,
+        iconUrl: (iconUrl as { src: string }).src,
+        shadowUrl: (shadowUrl as { src: string }).src,
       })
 
       if (cancelled || !mapContainerRef.current) return

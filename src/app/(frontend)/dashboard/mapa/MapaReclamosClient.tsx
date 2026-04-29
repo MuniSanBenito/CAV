@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { IconArrowLeft, IconFilter, IconCurrentLocation, IconRefresh } from '@tabler/icons-react'
 import { estadoLabel, estadoBadgeClass, prioridadLabel, tipoLabel } from '@/lib/constants'
 import AddressSearch from '@/components/AddressSearch'
+import 'leaflet/dist/leaflet.css'
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
+import iconUrl from 'leaflet/dist/images/marker-icon.png'
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 interface Coords {
   lat: number
@@ -47,51 +51,66 @@ export default function MapaReclamosClient() {
   const [filterEstado, setFilterEstado] = useState('')
   const [filterTipo, setFilterTipo] = useState('')
 
-  const fetchReclamos = async () => {
+  // Cap razonable: 1500 puntos en un mapa ya es saturación visual.
+  // Si se llega al cap, se avisa al usuario para que filtre.
+  const MAP_LIMIT = 1500
+  const [truncated, setTruncated] = useState(false)
+
+  const fetchReclamos = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(
-        '/api/reclamos?limit=0&depth=1&select[numero]=true&select[tipo]=true&select[estado]=true&select[prioridad]=true&select[calle]=true&select[descripcion]=true&select[coordenadas]=true&select[area_derivada]=true&select[createdAt]=true',
-        {
-          credentials: 'include',
-        },
-      )
+      const params = new URLSearchParams()
+      params.set('limit', String(MAP_LIMIT))
+      params.set('depth', '1')
+      params.set('sort', '-createdAt')
+      // Solo traer campos necesarios para el mapa
+      ;[
+        'numero',
+        'tipo',
+        'estado',
+        'prioridad',
+        'calle',
+        'descripcion',
+        'coordenadas',
+        'area_derivada',
+        'createdAt',
+      ].forEach((f) => params.set(`select[${f}]`, 'true'))
+
+      // Filtros server-side cuando hay valor (reduce data transferida)
+      if (filterEstado) params.set('where[estado][equals]', filterEstado)
+      if (filterTipo) params.set('where[tipo][equals]', filterTipo)
+
+      const res = await fetch(`/api/reclamos?${params.toString()}`, {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (data?.docs) {
         setReclamos(data.docs)
+        setTruncated((data.totalDocs ?? 0) > MAP_LIMIT)
       }
     } catch {
       console.error('Error fetching reclamos for map')
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterEstado, filterTipo])
 
   useEffect(() => {
     fetchReclamos()
-  }, [])
+  }, [fetchReclamos])
 
   // Init map
   useEffect(() => {
     let cancelled = false
 
     async function init() {
-      if (!document.getElementById('leaflet-css-mapa')) {
-        const link = document.createElement('link')
-        link.id = 'leaflet-css-mapa'
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
-        await new Promise((resolve) => setTimeout(resolve, 150))
-      }
-
       const L = await import('leaflet')
 
       delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
       L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconRetinaUrl: (iconRetinaUrl as { src: string }).src,
+        iconUrl: (iconUrl as { src: string }).src,
+        shadowUrl: (shadowUrl as { src: string }).src,
       })
 
       if (cancelled || !mapContainerRef.current) return
@@ -202,6 +221,11 @@ export default function MapaReclamosClient() {
           <h1 className="reclamos-title">Mapa de Reclamos</h1>
           <p className="reclamos-subtitle">
             {geoCount} de {reclamos.length} reclamos con geolocalización
+            {truncated && (
+              <span style={{ marginLeft: 8, color: '#f59e0b' }}>
+                · Mostrando los más recientes — usá los filtros para acotar
+              </span>
+            )}
           </p>
         </div>
         <Link href="/dashboard" className="dash-action-btn dash-action-btn--secondary">

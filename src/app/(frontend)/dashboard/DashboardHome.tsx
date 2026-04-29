@@ -1,6 +1,4 @@
-'use client'
-
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import {
   IconFileDescription,
@@ -43,62 +41,24 @@ const estadoConfig: Record<string, { label: string; className: string; icon: typ
   rechazado: { label: 'Rechazados', className: 'stat-card--rejected', icon: IconAlertTriangle },
 }
 
-// estadoLabel, estadoBadgeClass imported from @/lib/constants
 const estadoBadge = estadoBadgeClass
 
-export default function DashboardHome() {
-  const [user, setUser] = useState<DashUser | null>(null)
-  const [stats, setStats] = useState<ReclamoStats>({
-    pendiente: 0,
-    en_proceso: 0,
-    resuelto: 0,
-    rechazado: 0,
-    total: 0,
-  })
-  const [recent, setRecent] = useState<ReclamoRecent[]>([])
-  const [loading, setLoading] = useState(true)
+function greeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Buenos días'
+  if (hour < 19) return 'Buenas tardes'
+  return 'Buenas noches'
+}
 
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
-      fetch('/api/stats', { credentials: 'include' }).then((r) => r.json()),
-      fetch('/api/reclamos?limit=5&sort=-createdAt', { credentials: 'include' }).then((r) =>
-        r.json(),
-      ),
-    ])
-      .then(([userData, statsData, recentData]) => {
-        if (userData?.user) {
-          if (userData.user.role === 'ejecutor') {
-            window.location.href = '/mis-reclamos'
-            return
-          }
-          setUser(userData.user)
-        }
-        if (statsData && !statsData.error) {
-          setStats(statsData)
-        }
-
-        if (recentData?.docs) setRecent(recentData.docs)
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  const greeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Buenos días'
-    if (hour < 19) return 'Buenas tardes'
-    return 'Buenas noches'
-  }
-
-  if (loading) {
-    return (
-      <div className="dash-loading">
-        <span className="loading loading-spinner loading-lg" />
-      </div>
-    )
-  }
-
+export default function DashboardHome({
+  user,
+  stats,
+  recent,
+}: {
+  user: DashUser
+  stats: ReclamoStats
+  recent: ReclamoRecent[]
+}) {
   return (
     <div className="dash-home">
       {/* Welcome header */}

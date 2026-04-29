@@ -383,32 +383,6 @@ export const Reclamos: CollectionConfig = {
           }
         }
 
-        // Geocodificación automática de dirección
-        const ubicacionData = data.ubicacion as Record<string, unknown> | undefined
-        const direccionIngresada = ubicacionData?.direccionIngresada as string | undefined
-
-        if (direccionIngresada && (!ubicacionData?.location || operation === 'create')) {
-          try {
-            const geoResult = await geocodeAddress(direccionIngresada)
-            if (geoResult) {
-              data.ubicacion = {
-                ...ubicacionData,
-                direccionIngresada,
-                direccionNormalizada: geoResult.displayName,
-                barrio: extractBarrio(geoResult.address),
-                localidad: extractLocalidad(geoResult.address),
-                location: {
-                  type: 'Point',
-                  coordinates: [geoResult.lng, geoResult.lat], // [lng, lat] for GeoJSON
-                },
-              }
-            }
-          } catch (error) {
-            console.error('Error en geocodificación:', error)
-            // No fallar la operación si la geocodificación falla
-          }
-        }
-
         // FIX #2: Server-side append-only movimientos
         // The client sends `_nuevoMovimiento` with just the new entry.
         // We ignore any client-sent `movimientos` array and append server-side.
@@ -437,11 +411,55 @@ export const Reclamos: CollectionConfig = {
         return data
       },
     ],
+    afterChange: [
+      async ({ doc, req, context }) => {
+        // Skip si esta misma escritura es la actualización post-geocoding
+        if ((context as Record<string, unknown>)?.skipGeocoding) return
+
+        const ubicacion = doc.ubicacion as Record<string, unknown> | undefined
+        const direccionIngresada = ubicacion?.direccionIngresada as string | undefined
+        const hasLocation = !!ubicacion?.location
+
+        // Solo geocodificar si hay dirección y aún no hay coordenadas
+        if (!direccionIngresada || hasLocation) return
+
+        // Fire-and-forget: la respuesta al cliente sale YA, esto corre en background.
+        // Usamos setImmediate para asegurar que el cierre de la transacción ocurra primero.
+        setImmediate(() => {
+          void (async () => {
+            try {
+              const geoResult = await geocodeAddress(direccionIngresada)
+              if (!geoResult) return
+              await req.payload.update({
+                collection: 'reclamos',
+                id: doc.id,
+                data: {
+                  ubicacion: {
+                    ...ubicacion,
+                    direccionNormalizada: geoResult.displayName,
+                    barrio: extractBarrio(geoResult.address),
+                    localidad: extractLocalidad(geoResult.address),
+                    location: [geoResult.lng, geoResult.lat],
+                  },
+                },
+                context: { skipGeocoding: true },
+                overrideAccess: true,
+              })
+            } catch (error) {
+              console.error('Background geocoding failed:', error)
+            }
+          })()
+        })
+      },
+    ],
   },
   // Índices para optimizar queries frecuentes
   indexes: [
     { fields: ['estado', 'area_derivada'] },
     { fields: ['ubicacion.location'] },
     { fields: ['estado', 'prioridad', 'createdAt'] },
+    { fields: ['createdAt'] }, // sort=-createdAt sin filtros
+    { fields: ['tipo'] }, // filtro de tabla y mapa
+    { fields: ['contribuyente'] }, // join inverso al buscar reclamos por contribuyente
   ],
 }
