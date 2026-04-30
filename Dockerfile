@@ -28,10 +28,11 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Declarar los argumentos de build y convertir ARG a ENV para que estén disponibles en runtime
-ARG DATABASE_URI
-ENV DATABASE_URI=$DATABASE_URI
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 ARG PAYLOAD_SECRET
 ENV PAYLOAD_SECRET=$PAYLOAD_SECRET
+ENV PAYLOAD_CONFIG_PATH=src/payload.config.ts
 
 RUN corepack enable && pnpm run build
 
@@ -40,8 +41,8 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PAYLOAD_CONFIG_PATH=src/payload.config.ts
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
