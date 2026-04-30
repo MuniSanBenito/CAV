@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     users: User;
     areas: Area;
+    'conceptos-reclamo': ConceptosReclamo;
     media: Media;
     reclamos: Reclamo;
     contribuyentes: Contribuyente;
@@ -81,6 +82,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     areas: AreasSelect<false> | AreasSelect<true>;
+    'conceptos-reclamo': ConceptosReclamoSelect<false> | ConceptosReclamoSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     reclamos: ReclamosSelect<false> | ReclamosSelect<true>;
     contribuyentes: ContribuyentesSelect<false> | ContribuyentesSelect<true>;
@@ -176,6 +178,24 @@ export interface Area {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "conceptos-reclamo".
+ */
+export interface ConceptosReclamo {
+  id: string;
+  nombre: string;
+  /**
+   * Área a la que pertenece este concepto de reclamo
+   */
+  area: string | Area;
+  /**
+   * Indica si el concepto está disponible para nuevos reclamos
+   */
+  activo?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -218,21 +238,10 @@ export interface Reclamo {
    * Área a la que se deriva el reclamo
    */
   area_derivada: string | Area;
-  categoria:
-    | 'general'
-    | 'alumbrado'
-    | 'pavimento'
-    | 'higiene'
-    | 'pluviales'
-    | 'verdes'
-    | 'transito'
-    | 'ruidos'
-    | 'convivencia'
-    | 'servicios';
   /**
-   * Especificación adicional de la categoría
+   * Concepto de reclamo según el área derivada
    */
-  subcategoria?: string | null;
+  concepto?: (string | null) | ConceptosReclamo;
   prioridad: 'baja' | 'media' | 'alta' | 'urgente';
   /**
    * Fecha estimada de resolución (SLA)
@@ -267,17 +276,6 @@ export interface Reclamo {
      * @maxItems 2
      */
     location?: [number, number] | null;
-  };
-  /**
-   * ⚠️ Deprecado - usar ubicacion.direccionIngresada
-   */
-  calle?: string | null;
-  /**
-   * ⚠️ Deprecado - usar ubicacion.location
-   */
-  coordenadas?: {
-    lat?: number | null;
-    lng?: number | null;
   };
   /**
    * Fotos adjuntas del reclamo
@@ -356,6 +354,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'areas';
         value: string | Area;
+      } | null)
+    | ({
+        relationTo: 'conceptos-reclamo';
+        value: string | ConceptosReclamo;
       } | null)
     | ({
         relationTo: 'media';
@@ -451,6 +453,17 @@ export interface AreasSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "conceptos-reclamo_select".
+ */
+export interface ConceptosReclamoSelect<T extends boolean = true> {
+  nombre?: T;
+  area?: T;
+  activo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
@@ -479,8 +492,7 @@ export interface ReclamosSelect<T extends boolean = true> {
   medio?: T;
   area_receptora?: T;
   area_derivada?: T;
-  categoria?: T;
-  subcategoria?: T;
+  concepto?: T;
   prioridad?: T;
   fechaCompromiso?: T;
   diasResolucionEstimados?: T;
@@ -493,13 +505,6 @@ export interface ReclamosSelect<T extends boolean = true> {
         barrio?: T;
         localidad?: T;
         location?: T;
-      };
-  calle?: T;
-  coordenadas?:
-    | T
-    | {
-        lat?: T;
-        lng?: T;
       };
   fotos?: T;
   observaciones?: T;

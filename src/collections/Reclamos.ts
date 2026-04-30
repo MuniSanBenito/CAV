@@ -109,28 +109,18 @@ export const Reclamos: CollectionConfig = {
       },
     },
     {
-      name: 'categoria',
-      type: 'select',
-      required: true,
-      defaultValue: 'general',
-      options: [
-        { label: 'General', value: 'general' },
-        { label: 'Alumbrado Público', value: 'alumbrado' },
-        { label: 'Pavimento / Calles', value: 'pavimento' },
-        { label: 'Higiene / Limpieza', value: 'higiene' },
-        { label: 'Pluviales / Drenaje', value: 'pluviales' },
-        { label: 'Espacios Verdes', value: 'verdes' },
-        { label: 'Tránsito / Señalización', value: 'transito' },
-        { label: 'Ruidos Molestos', value: 'ruidos' },
-        { label: 'Convivencia / Seguridad', value: 'convivencia' },
-        { label: 'Servicios Públicos', value: 'servicios' },
-      ],
-    },
-    {
-      name: 'subcategoria',
-      type: 'text',
+      name: 'concepto',
+      type: 'relationship',
+      relationTo: 'conceptos-reclamo',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      filterOptions: (({ data }: { data: Record<string, unknown> }) => {
+        if (!data?.area_derivada) return { activo: { equals: true } }
+        return {
+          and: [{ area: { equals: data.area_derivada } }, { activo: { equals: true } }],
+        }
+      }) as any,
       admin: {
-        description: 'Especificación adicional de la categoría',
+        description: 'Concepto de reclamo según el área derivada',
       },
     },
     {
@@ -172,7 +162,6 @@ export const Reclamos: CollectionConfig = {
         { label: 'Rechazado', value: 'rechazado' },
       ],
     },
-    // NUEVO: Ubicación con geocodificación automática
     {
       name: 'ubicacion',
       type: 'group',
@@ -219,38 +208,6 @@ export const Reclamos: CollectionConfig = {
           admin: {
             description: 'Coordenadas geoespaciales (lat, lng) - índice 2dsphere',
           },
-        },
-      ],
-    },
-    // LEGACY: Mantener calle para compatibilidad, migrar a ubicacion.direccionIngresada
-    {
-      name: 'calle',
-      type: 'text',
-      admin: {
-        description: '⚠️ Deprecado - usar ubicacion.direccionIngresada',
-        position: 'sidebar',
-        condition: () => false,
-      },
-    },
-    // LEGACY: Coordenadas legacy
-    {
-      name: 'coordenadas',
-      type: 'group',
-      admin: {
-        description: '⚠️ Deprecado - usar ubicacion.location',
-        position: 'sidebar',
-        condition: () => false,
-      },
-      fields: [
-        {
-          name: 'lat',
-          type: 'number',
-          admin: { step: 0.000001 },
-        },
-        {
-          name: 'lng',
-          type: 'number',
-          admin: { step: 0.000001 },
         },
       ],
     },

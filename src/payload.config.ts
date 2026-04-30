@@ -8,6 +8,7 @@ import sharp from 'sharp'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Areas } from './collections/Areas'
+import { ConceptosReclamo } from './collections/ConceptosReclamo'
 import { Reclamos } from './collections/Reclamos'
 import { Contribuyentes } from './collections/Contribuyentes'
 
@@ -24,7 +25,7 @@ export default buildConfig({
       titleSuffix: '— CAV San Benito',
     },
   },
-  collections: [Users, Areas, Media, Reclamos, Contribuyentes],
+  collections: [Users, Areas, ConceptosReclamo, Media, Reclamos, Contribuyentes],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
