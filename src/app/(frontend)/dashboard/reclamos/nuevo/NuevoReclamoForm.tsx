@@ -25,6 +25,12 @@ interface Area {
   nombre: string
 }
 
+interface Concepto {
+  id: string
+  nombre: string
+  area: { id: string; nombre: string } | string
+}
+
 interface Contribuyente {
   id: string
   nombre: string
@@ -70,6 +76,8 @@ export default function NuevoReclamoForm({
   const [descripcion, setDescripcion] = useState('')
   const [medio, setMedio] = useState('presencial')
   const [prioridad, setPrioridad] = useState('media')
+  const [conceptos, setConceptos] = useState<Concepto[]>([])
+  const [concepto, setConcepto] = useState('')
   const [areaDerivada, setAreaDerivada] = useState('')
   const [direccionBusqueda, setDireccionBusqueda] = useState('') // Texto original del buscador
   const [barrio, setBarrio] = useState('')
@@ -145,30 +153,38 @@ export default function NuevoReclamoForm({
   const [observaciones, setObservaciones] = useState('')
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
       fetch('/api/areas?limit=100&where[activa][equals]=true', { credentials: 'include' }).then(
         (r) => r.json(),
       ),
+      fetch('/api/conceptos-reclamo?where[activo][equals]=true&depth=1&limit=500', {
+        credentials: 'include',
+      }).then((r) => r.json()),
     ])
-      .then(([userData, areasData]) => {
-        if (userData?.user) {
-          if (userData.user.role === 'visualizador') {
-            router.replace('/dashboard/reclamos')
-            return
-          }
-          setUser(userData.user)
-          if (userData.user.role === 'ejecutor') {
-            const userAreaId =
-              typeof userData.user.area === 'string' ? userData.user.area : userData.user.area?.id
-            if (userAreaId) {
-              setAreaDerivada(userAreaId)
+      .then(([userResult, areasResult, conceptosResult]) => {
+        if (userResult.status === 'fulfilled') {
+          const userData = userResult.value
+          if (userData?.user) {
+            if (userData.user.role === 'visualizador') {
+              router.replace('/dashboard/reclamos')
+              return
+            }
+            setUser(userData.user)
+            if (userData.user.role === 'ejecutor') {
+              const userAreaId =
+                typeof userData.user.area === 'string' ? userData.user.area : userData.user.area?.id
+              if (userAreaId) setAreaDerivada(userAreaId)
             }
           }
         }
-        if (areasData?.docs) setAreas(areasData.docs)
+        if (areasResult.status === 'fulfilled' && areasResult.value?.docs) {
+          setAreas(areasResult.value.docs)
+        }
+        if (conceptosResult.status === 'fulfilled' && conceptosResult.value?.docs) {
+          setConceptos(conceptosResult.value.docs)
+        }
       })
-      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
@@ -183,6 +199,17 @@ export default function NuevoReclamoForm({
       ? areas.find((a) => a.id === user.area)?.nombre || '—'
       : user.area.nombre
     : 'Sin área asignada'
+
+  function handleConceptoChange(conceptoId: string) {
+    setConcepto(conceptoId)
+    if (conceptoId) {
+      const found = conceptos.find((c) => c.id === conceptoId)
+      if (found) {
+        const areaId = typeof found.area === 'string' ? found.area : found.area.id
+        setAreaDerivada(areaId)
+      }
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -211,6 +238,7 @@ export default function NuevoReclamoForm({
         prioridad,
         area_receptora: areaReceptoraId || undefined,
         area_derivada: areaDerivada,
+        concepto: concepto || undefined,
         estado: 'pendiente',
         observaciones: observaciones.trim() || undefined,
       }
@@ -294,6 +322,7 @@ export default function NuevoReclamoForm({
                 setUbicacion(null)
                 setCalle('')
                 setCoordenadas(null)
+                setConcepto('')
                 setObservaciones('')
                 setCreatedNumero(null)
               }}
@@ -396,17 +425,37 @@ export default function NuevoReclamoForm({
           </div>
         </div>
 
-        {/* Section: Áreas */}
+        {/* Section: Áreas y Concepto */}
         <div className="nuevo-section">
           <div className="nuevo-section-header">
             <IconBuildingCommunity size={20} stroke={1.5} />
-            <span>Áreas</span>
+            <span>Clasificación y Derivación</span>
           </div>
           <div className="modal-row">
             <div className="modal-field">
               <label className="modal-label">Área Receptora</label>
               <div className="nuevo-area-readonly">{areaReceptoraNombre}</div>
             </div>
+            <div className="modal-field">
+              <label className="modal-label" htmlFor="nuevo-concepto">
+                Concepto
+              </label>
+              <select
+                id="nuevo-concepto"
+                className="modal-select"
+                value={concepto}
+                onChange={(e) => handleConceptoChange(e.target.value)}
+              >
+                <option value="">Seleccionar concepto...</option>
+                {conceptos.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="modal-row">
             <div className="modal-field">
               <label className="modal-label" htmlFor="nuevo-area-derivada">
                 Área Derivada <span className="modal-required">*</span>

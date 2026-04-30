@@ -84,11 +84,14 @@ export default function UbicacionMap({
       const L = await import('leaflet')
 
       // Fix default marker icon paths (assets bundled by Next, no CDN)
+      // Next.js may return PNG imports as a plain string or a StaticImageData object
+      const resolveUrl = (img: unknown): string =>
+        typeof img === 'string' ? img : (img as { src: string }).src
       delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
       L.Icon.Default.mergeOptions({
-        iconRetinaUrl: (iconRetinaUrl as { src: string }).src,
-        iconUrl: (iconUrl as { src: string }).src,
-        shadowUrl: (shadowUrl as { src: string }).src,
+        iconRetinaUrl: resolveUrl(iconRetinaUrl),
+        iconUrl: resolveUrl(iconUrl),
+        shadowUrl: resolveUrl(shadowUrl),
       })
 
       if (cancelled || !mapContainerRef.current) return

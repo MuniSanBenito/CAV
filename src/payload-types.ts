@@ -278,6 +278,14 @@ export interface Reclamo {
     location?: [number, number] | null;
   };
   /**
+   * Dirección/calle del reclamo
+   */
+  calle?: string | null;
+  coordenadas?: {
+    lat?: number | null;
+    lng?: number | null;
+  };
+  /**
    * Fotos adjuntas del reclamo
    */
   fotos?: (string | Media)[] | null;
@@ -505,6 +513,13 @@ export interface ReclamosSelect<T extends boolean = true> {
         barrio?: T;
         localidad?: T;
         location?: T;
+      };
+  calle?: T;
+  coordenadas?:
+    | T
+    | {
+        lat?: T;
+        lng?: T;
       };
   fotos?: T;
   observaciones?: T;

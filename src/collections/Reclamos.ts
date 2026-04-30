@@ -212,6 +212,29 @@ export const Reclamos: CollectionConfig = {
       ],
     },
     {
+      name: 'calle',
+      type: 'text',
+      admin: {
+        description: 'Dirección/calle del reclamo',
+      },
+    },
+    {
+      name: 'coordenadas',
+      type: 'group',
+      fields: [
+        {
+          name: 'lat',
+          type: 'number',
+          admin: { step: 0.000001 },
+        },
+        {
+          name: 'lng',
+          type: 'number',
+          admin: { step: 0.000001 },
+        },
+      ],
+    },
+    {
       name: 'fotos',
       type: 'upload',
       relationTo: 'media',
