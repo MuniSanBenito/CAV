@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { generatePayloadCookie } from 'payload'
 import { isAdmin, isAdminOrSelf } from '../access/roles'
 
 export const Users: CollectionConfig = {
@@ -6,7 +7,7 @@ export const Users: CollectionConfig = {
   auth: true,
   admin: {
     useAsTitle: 'email',
-    defaultColumns: ['email', 'nombre', 'apellido', 'role', 'areas'],
+    defaultColumns: ['email', 'nombre', 'apellido', 'dni', 'role', 'areas'],
     group: 'Configuración',
   },
   access: {
@@ -26,6 +27,16 @@ export const Users: CollectionConfig = {
       name: 'apellido',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'dni',
+      type: 'text',
+      required: true,
+      unique: true,
+      index: true,
+      admin: {
+        description: 'DNI del usuario (usado para login en la web, no en el admin)',
+      },
     },
     {
       name: 'role',
@@ -62,6 +73,76 @@ export const Users: CollectionConfig = {
         description: '⚠️ Deprecado - usar "areas" en su lugar',
         position: 'sidebar',
         condition: () => false, // Oculto en UI
+      },
+    },
+  ],
+  endpoints: [
+    {
+      path: '/login-with-dni',
+      method: 'post',
+      handler: async (req) => {
+        const body = req.json ? await req.json() : {}
+        const { dni, password } = body
+
+        if (!dni || !password) {
+          return Response.json(
+            { errors: [{ message: 'DNI y contraseña son requeridos' }] },
+            { status: 400 },
+          )
+        }
+
+        const { docs } = await req.payload.find({
+          collection: 'users',
+          where: { dni: { equals: dni } },
+          limit: 1,
+        })
+
+        if (!docs.length) {
+          return Response.json(
+            { errors: [{ message: 'DNI o contraseña incorrectos' }] },
+            { status: 401 },
+          )
+        }
+
+        const user = docs[0]
+
+        try {
+          const result = await req.payload.login({
+            collection: 'users',
+            data: { email: user.email, password },
+          })
+
+          if (!result.token) {
+            return Response.json(
+              { errors: [{ message: 'Error al generar el token de autenticación' }] },
+              { status: 500 },
+            )
+          }
+
+          const usersCollection = req.payload.config.collections.find((c) => c.slug === 'users')
+
+          if (!usersCollection?.auth) {
+            return Response.json(
+              { errors: [{ message: 'Error de configuración de autenticación' }] },
+              { status: 500 },
+            )
+          }
+
+          const cookie = generatePayloadCookie({
+            collectionAuthConfig: usersCollection.auth,
+            cookiePrefix: req.payload.config.cookiePrefix,
+            token: result.token,
+          })
+
+          return Response.json(result, {
+            headers: { 'Set-Cookie': cookie },
+          })
+        } catch {
+          return Response.json(
+            { errors: [{ message: 'DNI o contraseña incorrectos' }] },
+            { status: 401 },
+          )
+        }
       },
     },
   ],

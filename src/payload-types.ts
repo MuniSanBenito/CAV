@@ -133,6 +133,10 @@ export interface User {
   id: string;
   nombre: string;
   apellido: string;
+  /**
+   * DNI del usuario (usado para login en la web, no en el admin)
+   */
+  dni: string;
   role: 'admin' | 'carga' | 'ejecutor' | 'visualizador';
   /**
    * Áreas asignadas al usuario (puede tener varias)
@@ -428,6 +432,7 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   nombre?: T;
   apellido?: T;
+  dni?: T;
   role?: T;
   areas?: T;
   area?: T;

@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, FormEvent } from 'react'
-import { IconMail, IconLock, IconLogin2, IconAlertCircle } from '@tabler/icons-react'
+import { IconId, IconLock, IconLogin2, IconAlertCircle } from '@tabler/icons-react'
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('')
+  const [dni, setDni] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,7 +13,7 @@ export default function LoginForm() {
     e.preventDefault()
     setError('')
 
-    if (!email || !password) {
+    if (!dni || !password) {
       setError('Completá todos los campos')
       return
     }
@@ -21,18 +21,18 @@ export default function LoginForm() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/users/login', {
+      const res = await fetch('/api/users/login-with-dni', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ dni, password }),
       })
 
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
         throw new Error(
-          data?.errors?.[0]?.message || 'Credenciales incorrectas. Verificá tu email y contraseña.',
+          data?.errors?.[0]?.message || 'Credenciales incorrectas. Verificá tu DNI y contraseña.',
         )
       }
 
@@ -79,19 +79,20 @@ export default function LoginForm() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="login-form">
           <fieldset disabled={loading} className="login-fieldset">
-            {/* Email */}
+            {/* DNI */}
             <label className="login-field">
-              <span className="login-field-label">Email</span>
+              <span className="login-field-label">DNI</span>
               <div className="login-input-wrap">
-                <IconMail size={18} stroke={1.6} className="login-input-icon" />
+                <IconId size={18} stroke={1.6} className="login-input-icon" />
                 <input
-                  id="login-email"
-                  type="email"
+                  id="login-dni"
+                  type="text"
+                  inputMode="numeric"
                   className="input input-bordered w-full login-input"
-                  placeholder="tu@email.com"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="12345678"
+                  autoComplete="username"
+                  value={dni}
+                  onChange={(e) => setDni(e.target.value)}
                 />
               </div>
             </label>
