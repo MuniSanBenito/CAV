@@ -34,7 +34,7 @@ export default async function HomePage() {
         <header className="home-header">
           <div className="home-badge">
             <span className="home-badge-dot"></span>
-            Portal Municipal
+            Municipalidad de San Benito{' '}
           </div>
           <h1 className="home-title">
             <span className="home-title-light">Centro de</span>
