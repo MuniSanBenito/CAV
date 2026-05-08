@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { generatePayloadCookie } from 'payload'
+import { cookies } from 'next/headers'
 import { isAdmin, isAdminOrSelf } from '../access/roles'
 
 export const Users: CollectionConfig = {
@@ -128,15 +128,24 @@ export const Users: CollectionConfig = {
             )
           }
 
-          const cookie = generatePayloadCookie({
-            collectionAuthConfig: usersCollection.auth,
-            cookiePrefix: req.payload.config.cookiePrefix,
-            token: result.token,
+          const cookieStore = await cookies()
+          const cookiePrefix = req.payload.config.cookiePrefix || 'payload'
+          const cookieName = `${cookiePrefix}-token`
+          const tokenExpiration = typeof usersCollection.auth === 'object' && usersCollection.auth.tokenExpiration 
+            ? usersCollection.auth.tokenExpiration 
+            : 7200
+
+          cookieStore.set({
+            name: cookieName,
+            value: result.token,
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: tokenExpiration,
           })
 
-          return Response.json(result, {
-            headers: { 'Set-Cookie': cookie },
-          })
+          return Response.json(result)
         } catch {
           return Response.json(
             { errors: [{ message: 'DNI o contraseña incorrectos' }] },
