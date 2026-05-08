@@ -66,6 +66,7 @@
       "sharp",
       "esbuild",
       "unrs-resolver"
+    ]
   },
   "packageManager": "pnpm@10.5.2"
 }
