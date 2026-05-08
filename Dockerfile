@@ -33,6 +33,8 @@ ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 ARG PAYLOAD_SECRET
 ENV PAYLOAD_SECRET=$PAYLOAD_SECRET
+ARG NEXT_PUBLIC_SERVER_URL
+ENV NEXT_PUBLIC_SERVER_URL=$NEXT_PUBLIC_SERVER_URL
 ENV PAYLOAD_CONFIG_PATH=src/payload.config.ts
 RUN corepack enable \
   && corepack prepare pnpm@10.5.2 --activate \
@@ -45,6 +47,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PAYLOAD_CONFIG_PATH=src/payload.config.ts
+# Runtime env vars — override via docker run -e or docker-compose environment
+ENV DATABASE_URL=""
+ENV PAYLOAD_SECRET=""
+ENV NEXT_PUBLIC_SERVER_URL=""
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
