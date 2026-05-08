@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { generatePayloadCookie } from 'payload'
 import { isAdmin, isAdminOrSelf } from '../access/roles'
 
 export const Users: CollectionConfig = {
@@ -106,6 +107,11 @@ export const Users: CollectionConfig = {
         const user = docs[0]
 
         try {
+          // Get the SANITIZED collection reference from the payload instance.
+          // This is the same object Payload's own loginHandler uses — it has
+          // .auth.cookies fully populated (sameSite, secure, domain, etc).
+          const collection = req.payload.collections['users']
+
           const result = await req.payload.login({
             collection: 'users',
             data: { email: user.email, password },
@@ -118,45 +124,19 @@ export const Users: CollectionConfig = {
             )
           }
 
-          // Build the Set-Cookie header manually.
-          // Payload's handleEndpoints() reconstructs the Response and merges
-          // req.responseHeaders into the final response headers.
-          // Using cookies() from next/headers does NOT work here because
-          // Payload creates a new Response() discarding the Next.js cookie context.
-          const cookiePrefix = req.payload.config.cookiePrefix || 'payload'
-          const cookieName = `${cookiePrefix}-token`
+          // Generate cookie EXACTLY like Payload's native loginHandler does:
+          // See: node_modules/payload/dist/auth/endpoints/login.js
+          const cookie = generatePayloadCookie({
+            collectionAuthConfig: collection.config.auth,
+            cookiePrefix: req.payload.config.cookiePrefix,
+            token: result.token,
+          })
 
-          const usersCollection = req.payload.config.collections.find((c) => c.slug === 'users')
-          const authConfig =
-            typeof usersCollection?.auth === 'object' ? usersCollection.auth : null
-          const maxAge = authConfig?.tokenExpiration ?? 7200
-
-          const cookieParts = [
-            `${cookieName}=${result.token}`,
-            `Path=/`,
-            `HttpOnly`,
-            `SameSite=Lax`,
-            `Max-Age=${maxAge}`,
-          ]
-
-          if (process.env.NODE_ENV === 'production') {
-            cookieParts.push('Secure')
-          }
-
-          // Domain from auth config if set
-          if (authConfig?.cookies?.domain) {
-            cookieParts.push(`Domain=${authConfig.cookies.domain}`)
-          }
-
-          const setCookieHeader = cookieParts.join('; ')
-
-          // Attach to req.responseHeaders so Payload merges it into the final response
-          if (!req.responseHeaders) {
-            req.responseHeaders = new Headers()
-          }
-          req.responseHeaders.append('Set-Cookie', setCookieHeader)
-
-          return Response.json(result)
+          return Response.json(result, {
+            headers: new Headers({
+              'Set-Cookie': cookie,
+            }),
+          })
         } catch {
           return Response.json(
             { errors: [{ message: 'DNI o contraseña incorrectos' }] },
