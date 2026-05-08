@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import { cookies } from 'next/headers'
 import { isAdmin, isAdminOrSelf } from '../access/roles'
 
 export const Users: CollectionConfig = {
@@ -119,31 +118,43 @@ export const Users: CollectionConfig = {
             )
           }
 
-          const usersCollection = req.payload.config.collections.find((c) => c.slug === 'users')
-
-          if (!usersCollection?.auth) {
-            return Response.json(
-              { errors: [{ message: 'Error de configuración de autenticación' }] },
-              { status: 500 },
-            )
-          }
-
-          const cookieStore = await cookies()
+          // Build the Set-Cookie header manually.
+          // Payload's handleEndpoints() reconstructs the Response and merges
+          // req.responseHeaders into the final response headers.
+          // Using cookies() from next/headers does NOT work here because
+          // Payload creates a new Response() discarding the Next.js cookie context.
           const cookiePrefix = req.payload.config.cookiePrefix || 'payload'
           const cookieName = `${cookiePrefix}-token`
-          const tokenExpiration = typeof usersCollection.auth === 'object' && usersCollection.auth.tokenExpiration 
-            ? usersCollection.auth.tokenExpiration 
-            : 7200
 
-          cookieStore.set({
-            name: cookieName,
-            value: result.token,
-            path: '/',
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: tokenExpiration,
-          })
+          const usersCollection = req.payload.config.collections.find((c) => c.slug === 'users')
+          const authConfig =
+            typeof usersCollection?.auth === 'object' ? usersCollection.auth : null
+          const maxAge = authConfig?.tokenExpiration ?? 7200
+
+          const cookieParts = [
+            `${cookieName}=${result.token}`,
+            `Path=/`,
+            `HttpOnly`,
+            `SameSite=Lax`,
+            `Max-Age=${maxAge}`,
+          ]
+
+          if (process.env.NODE_ENV === 'production') {
+            cookieParts.push('Secure')
+          }
+
+          // Domain from auth config if set
+          if (authConfig?.cookies?.domain) {
+            cookieParts.push(`Domain=${authConfig.cookies.domain}`)
+          }
+
+          const setCookieHeader = cookieParts.join('; ')
+
+          // Attach to req.responseHeaders so Payload merges it into the final response
+          if (!req.responseHeaders) {
+            req.responseHeaders = new Headers()
+          }
+          req.responseHeaders.append('Set-Cookie', setCookieHeader)
 
           return Response.json(result)
         } catch {
