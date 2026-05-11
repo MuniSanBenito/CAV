@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
@@ -46,9 +45,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use Next.js native cookies API — this ALWAYS works in App Router API Routes.
-    // This is the same mechanism Payload's own Server Action login uses.
-    const cookieStore = await cookies()
     const cookiePrefix = payload.config.cookiePrefix || 'payload'
     const authConfig = payload.collections['users']?.config?.auth
 
@@ -57,7 +53,8 @@ export async function POST(request: NextRequest) {
         ? authConfig.tokenExpiration
         : 7200
 
-    cookieStore.set(`${cookiePrefix}-token`, result.token, {
+    const response = NextResponse.json(result)
+    response.cookies.set(`${cookiePrefix}-token`, result.token, {
       httpOnly: true,
       path: '/',
       sameSite: 'lax',
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest) {
       maxAge: tokenExpiration,
     })
 
-    return NextResponse.json(result)
+    return response
   } catch (err) {
     // Payload throws AuthenticationError for wrong password
     const message =
