@@ -10,7 +10,7 @@ import { cache } from 'react'
  * Usa React.cache() para deduplicar la llamada entre layouts y páginas
  * dentro de la misma request server-side.
  */
-/* export const getCurrentUser = cache(async () => {
+export const getCurrentUser = cache(async () => {
   try {
     const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: await nextHeaders() })
@@ -18,16 +18,7 @@ import { cache } from 'react'
   } catch {
     return null
   }
-}) */
-export const getCurrentUser = async () => {
-  try {
-    const payload = await getPayload({ config })
-    const { user } = await payload.auth({ headers: await nextHeaders() })
-    return user
-  } catch {
-    return null
-  }
-}
+})
 
 export const getPayloadClient = cache(async () => {
   return getPayload({ config })
