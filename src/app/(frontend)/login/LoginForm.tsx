@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, FormEvent } from 'react'
-import { IconId, IconLock, IconLogin2, IconAlertCircle } from '@tabler/icons-react'
+import { IconAlertCircle, IconId, IconLock, IconLogin2 } from '@tabler/icons-react'
+import { SubmitEvent, useState } from 'react'
 
 export default function LoginForm() {
   const [dni, setDni] = useState('')
@@ -9,7 +9,7 @@ export default function LoginForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
 
@@ -21,7 +21,48 @@ export default function LoginForm() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/login', {
+      /* const response = await sdk.login({
+        collection: 'users',
+        data: {
+          username: dni,
+          password: password,
+        },
+      }) */
+
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: dni,
+          password: password,
+        }),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null)
+        throw new Error(
+          errorData?.errors?.[0]?.message ||
+            'Credenciales incorrectas. Verificá tu DNI y contraseña.',
+        )
+      }
+      const data = await res.json()
+
+      if (!data.user) {
+        throw new Error('Credenciales incorrectas. Verificá tu DNI y contraseña.')
+      }
+
+      // Successful login — redirect based on role
+      const userRole = data.user.role
+      if (userRole === 'ejecutor') {
+        window.location.href = '/mis-reclamos' // Placeholder for the field worker's view
+      } else {
+        // Admin, Carga, and Visualizador go to the main dashboard
+        window.location.href = '/dashboard'
+      }
+
+      /* const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -43,7 +84,7 @@ export default function LoginForm() {
       } else {
         // Admin, Carga, and Visualizador go to the main dashboard
         window.location.href = '/dashboard'
-      }
+      } */
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error inesperado')
     } finally {

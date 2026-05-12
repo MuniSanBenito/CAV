@@ -4,10 +4,7 @@ import { isAdmin, isAdminOrSelf } from '../access/roles'
 export const Users: CollectionConfig = {
   slug: 'users',
   auth: {
-    cookies: {
-      sameSite: 'Lax',
-      secure: process.env.NODE_ENV === 'production',
-    },
+    loginWithUsername: true,
   },
   admin: {
     useAsTitle: 'email',
