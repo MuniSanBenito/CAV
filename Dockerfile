@@ -14,7 +14,7 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json pnpm-lock.yaml .npmrc* ./
 RUN corepack enable \
-  && corepack prepare pnpm@10.5.2 --activate \
+  && corepack prepare pnpm@10 --activate \
   && pnpm --version \
   && pnpm install --frozen-lockfile
 # Rebuild the source code only when needed
@@ -37,7 +37,7 @@ ARG NEXT_PUBLIC_SERVER_URL
 ENV NEXT_PUBLIC_SERVER_URL=$NEXT_PUBLIC_SERVER_URL
 ENV PAYLOAD_CONFIG_PATH=src/payload.config.ts
 RUN corepack enable \
-  && corepack prepare pnpm@10.5.2 --activate \
+  && corepack prepare pnpm@10 --activate \
   && pnpm --version \
   && pnpm run build
 # Production image, copy all the files and run next
