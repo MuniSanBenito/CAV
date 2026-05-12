@@ -1,7 +1,7 @@
-import React from 'react'
-import { redirect } from 'next/navigation'
-import DashboardShell from './DashboardShell'
 import { getCurrentUser } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import React from 'react'
+import DashboardShell from './DashboardShell'
 
 export const metadata = {
   title: 'Dashboard — CAV San Benito',
@@ -10,6 +10,8 @@ export const metadata = {
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
+
+  console.log('user en dashboard', user)
 
   if (!user) redirect('/login')
   if (user.role === 'ejecutor') redirect('/mis-reclamos')
