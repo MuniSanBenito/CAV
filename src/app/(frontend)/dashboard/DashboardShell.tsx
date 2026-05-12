@@ -41,7 +41,13 @@ export default function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   async function handleLogout() {
-    await fetch('/api/users/logout', { method: 'POST', credentials: 'include' })
+    await fetch('/api/users/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
 
     router.replace('/login')
   }
