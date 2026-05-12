@@ -1,6 +1,5 @@
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import React from 'react'
 import DashboardShell from './DashboardShell'
 
 export const metadata = {
