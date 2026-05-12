@@ -1,19 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { roleLabels } from '@/lib/constants'
 import {
-  IconLayoutDashboard,
-  IconFileDescription,
-  IconLogout,
-  IconMenu2,
-  IconX,
   IconBuilding,
   IconChevronRight,
+  IconFileDescription,
+  IconLayoutDashboard,
+  IconLogout,
   IconMap,
+  IconMenu2,
+  IconX,
 } from '@tabler/icons-react'
-import { roleLabels } from '@/lib/constants'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import React, { useState } from 'react'
 
 interface DashboardUser {
   nombre: string
@@ -36,12 +36,14 @@ export default function DashboardShell({
   children: React.ReactNode
   user: DashboardUser
 }) {
+  const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   async function handleLogout() {
     await fetch('/api/users/logout', { method: 'POST', credentials: 'include' })
-    window.location.href = '/login'
+
+    router.replace('/login')
   }
 
   return (

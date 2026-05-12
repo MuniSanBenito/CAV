@@ -1,22 +1,23 @@
 'use client'
 
-import React, { useEffect, useState, useRef } from 'react'
-import Link from 'next/link'
+import { cardGlowClass, estadoBadgeClass, estadoLabel } from '@/lib/constants'
 import {
-  IconSearch,
-  IconMapPin,
+  IconAlertTriangle,
+  IconArrowLeft,
   IconCamera,
   IconCheck,
-  IconX,
-  IconAlertTriangle,
   IconCircleCheck,
-  IconLocation,
-  IconArrowLeft,
-  IconPlus,
-  IconSend,
   IconClock,
+  IconLocation,
+  IconMapPin,
+  IconPlus,
+  IconSearch,
+  IconSend,
+  IconX,
 } from '@tabler/icons-react'
-import { estadoLabel, estadoBadgeClass, cardGlowClass } from '@/lib/constants'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useRef, useState } from 'react'
 
 interface User {
   id: string
@@ -48,6 +49,8 @@ interface Reclamo {
 // estadoLabel, estadoBadgeClass, cardGlowClass imported from @/lib/constants
 
 export default function MisReclamosClient() {
+  const router = useRouter()
+
   const [user, setUser] = useState<User | null>(null)
   const [reclamos, setReclamos] = useState<Reclamo[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,7 +102,7 @@ export default function MisReclamosClient() {
 
       const reclamosRes = await fetch(
         `/api/reclamos?where[area_derivada][equals]=${areaId}&sort=createdAt&limit=0`,
-        { credentials: 'include' }
+        { credentials: 'include' },
       )
       const reclamosData = await reclamosRes.json()
 
@@ -131,7 +134,7 @@ export default function MisReclamosClient() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => alert('No se pudo obtener tu ubicación. Verifica los permisos.')
+      () => alert('No se pudo obtener tu ubicación. Verifica los permisos.'),
     )
   }
 
@@ -225,7 +228,7 @@ export default function MisReclamosClient() {
       (r) =>
         (r.calle || '').toLowerCase().includes(term) ||
         r.numero.toString().includes(term) ||
-        (r.descripcion || '').toLowerCase().includes(term)
+        (r.descripcion || '').toLowerCase().includes(term),
     )
   }
   if (userCoords) {
@@ -254,7 +257,10 @@ export default function MisReclamosClient() {
         <IconAlertTriangle size={56} color="#ff6b6b" strokeWidth={1.5} />
         <h2 className="mis-reclamos-error-title">{error}</h2>
         {user?.role !== 'ejecutor' ? (
-          <Link href="/dashboard" className="mis-reclamos-error-btn mis-reclamos-error-btn--primary">
+          <Link
+            href="/dashboard"
+            className="mis-reclamos-error-btn mis-reclamos-error-btn--primary"
+          >
             Volver al Menú
           </Link>
         ) : (
@@ -262,7 +268,8 @@ export default function MisReclamosClient() {
             className="mis-reclamos-error-btn mis-reclamos-error-btn--secondary"
             onClick={async () => {
               await fetch('/api/users/logout', { method: 'POST', credentials: 'include' })
-              window.location.href = '/login'
+
+              router.replace('/login')
             }}
           >
             Cerrar Sesión
@@ -279,11 +286,7 @@ export default function MisReclamosClient() {
       <div className="mis-reclamos-header">
         <div className="mis-reclamos-toprow">
           {user?.role !== 'ejecutor' ? (
-            <Link
-              href="/dashboard"
-              className="mis-reclamos-back-btn"
-              title="Volver al Dashboard"
-            >
+            <Link href="/dashboard" className="mis-reclamos-back-btn" title="Volver al Dashboard">
               <IconArrowLeft size={20} />
             </Link>
           ) : (
@@ -332,8 +335,7 @@ export default function MisReclamosClient() {
       {/* LIST */}
       <div className="mis-reclamos-list">
         <p className="mis-reclamos-count">
-          {displayedReclamos.length}{' '}
-          {displayedReclamos.length === 1 ? 'actividad' : 'actividades'}
+          {displayedReclamos.length} {displayedReclamos.length === 1 ? 'actividad' : 'actividades'}
           {userCoords && ' · Por cercanía'}
         </p>
 
@@ -347,9 +349,7 @@ export default function MisReclamosClient() {
             {displayedReclamos.map((reclamo) => (
               <div key={reclamo.id} className="mis-reclamo-card">
                 {/* Subtle glow based on state */}
-                {cardGlowClass[reclamo.estado] && (
-                  <div className={cardGlowClass[reclamo.estado]} />
-                )}
+                {cardGlowClass[reclamo.estado] && <div className={cardGlowClass[reclamo.estado]} />}
 
                 <div className="mis-reclamo-card-body">
                   <div className="mis-reclamo-card-toprow">
@@ -405,7 +405,9 @@ export default function MisReclamosClient() {
                 <div className="mis-reclamos-estado-options">
                   <label
                     className={`mis-reclamos-estado-option${
-                      formEstado === 'resuelto' ? ' mis-reclamos-estado-option--resuelto-active' : ''
+                      formEstado === 'resuelto'
+                        ? ' mis-reclamos-estado-option--resuelto-active'
+                        : ''
                     }`}
                   >
                     <input
@@ -420,7 +422,9 @@ export default function MisReclamosClient() {
                   </label>
                   <label
                     className={`mis-reclamos-estado-option${
-                      formEstado === 'en_proceso' ? ' mis-reclamos-estado-option--proceso-active' : ''
+                      formEstado === 'en_proceso'
+                        ? ' mis-reclamos-estado-option--proceso-active'
+                        : ''
                     }`}
                   >
                     <input
