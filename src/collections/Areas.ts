@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAdmin, authenticated } from '../access/roles'
+import { isAdmin, anyone } from '../access/roles'
 
 export const Areas: CollectionConfig = {
   slug: 'areas',
@@ -10,7 +10,7 @@ export const Areas: CollectionConfig = {
   },
   access: {
     create: isAdmin,
-    read: authenticated,
+    read: anyone,
     update: isAdmin,
     delete: isAdmin,
   },
