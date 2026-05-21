@@ -267,16 +267,14 @@ export default function MisReclamosClient() {
           <button
             className="mis-reclamos-error-btn mis-reclamos-error-btn--secondary"
             onClick={async () => {
-              const r = await fetch('/api/users/logout?allSessions=true', {
+              await fetch('/api/users/logout', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
                   'Content-Type': 'application/json',
                 },
               })
-              if (r.ok) {
-                router.replace('/login')
-              }
+              router.replace('/login')
             }}
           >
             Cerrar Sesión
@@ -301,16 +299,14 @@ export default function MisReclamosClient() {
               className="mis-reclamos-back-btn mis-reclamos-back-btn--danger"
               title="Cerrar Sesión"
               onClick={async () => {
-                const r = await fetch('/api/users/logout?allSessions=true', {
+                await fetch('/api/users/logout', {
                   method: 'POST',
                   credentials: 'include',
                   headers: {
                     'Content-Type': 'application/json',
                   },
                 })
-                if (r.ok) {
-                  router.replace('/login')
-                }
+                router.replace('/login')
               }}
             >
               <IconArrowLeft size={20} />
