@@ -41,7 +41,7 @@ export default function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   async function handleLogout() {
-    await fetch('/api/users/logout', {
+    await fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
       headers: {

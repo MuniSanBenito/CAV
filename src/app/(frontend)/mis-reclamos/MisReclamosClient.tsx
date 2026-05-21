@@ -267,7 +267,7 @@ export default function MisReclamosClient() {
           <button
             className="mis-reclamos-error-btn mis-reclamos-error-btn--secondary"
             onClick={async () => {
-              await fetch('/api/users/logout', {
+              await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -299,7 +299,7 @@ export default function MisReclamosClient() {
               className="mis-reclamos-back-btn mis-reclamos-back-btn--danger"
               title="Cerrar Sesión"
               onClick={async () => {
-                await fetch('/api/users/logout', {
+                await fetch('/api/auth/logout', {
                   method: 'POST',
                   credentials: 'include',
                   headers: {
