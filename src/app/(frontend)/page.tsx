@@ -1,5 +1,5 @@
 import React from 'react'
-import { headers as nextHeaders } from 'next/headers'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
@@ -12,10 +12,16 @@ export default async function HomePage() {
   // por eso lo ejecutamos fuera del try/catch.
   let redirectTo: string | null = null
   try {
-    const payload = await getPayload({ config })
-    const { user } = await payload.auth({ headers: await nextHeaders() })
-    if (user) {
-      redirectTo = user.role === 'ejecutor' ? '/mis-reclamos' : '/dashboard'
+    const cookieStore = await cookies()
+    const token = cookieStore.get('payload-token')?.value
+    if (token) {
+      const payload = await getPayload({ config })
+      const { user } = await payload.auth({
+        headers: new Headers({ Cookie: `payload-token=${token}` }),
+      })
+      if (user) {
+        redirectTo = user.role === 'ejecutor' ? '/mis-reclamos' : '/dashboard'
+      }
     }
   } catch {
     // Si falla la verificación, cae a la vista pública

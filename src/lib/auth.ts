@@ -1,7 +1,7 @@
 import 'server-only'
 
 import config from '@payload-config'
-import { headers as nextHeaders } from 'next/headers'
+import { cookies } from 'next/headers'
 import { getPayload } from 'payload'
 import { cache } from 'react'
 
@@ -13,8 +13,14 @@ import { cache } from 'react'
 export const getCurrentUser = cache(async () => {
   try {
     const payload = await getPayload({ config })
-    const { user } = await payload.auth({ headers: await nextHeaders() })
-    return user
+    const cookieStore = await cookies()
+    const token = cookieStore.get('payload-token')?.value
+    if (!token) return null
+
+    const { user } = await payload.auth({
+      headers: new Headers({ Cookie: `payload-token=${token}` }),
+    })
+    return user ?? null
   } catch {
     return null
   }
