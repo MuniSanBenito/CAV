@@ -4,7 +4,10 @@ import { isAdmin, isAdminOrSelf } from '../access/roles'
 export const Users: CollectionConfig = {
   slug: 'users',
   auth: {
-    loginWithUsername: true,
+    loginWithUsername: {
+      allowEmailLogin: true,
+      requireEmail: false,
+    },
   },
   admin: {
     useAsTitle: 'email',
@@ -34,7 +37,6 @@ export const Users: CollectionConfig = {
       type: 'text',
       required: true,
       unique: true,
-      index: true,
       admin: {
         description: 'DNI del usuario (usado para login en la web, no en el admin)',
       },
