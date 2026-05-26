@@ -24,7 +24,7 @@ interface User {
   nombre: string
   apellido: string
   role: string
-  area?: string | { id: string; nombre: string }
+  areas?: (string | { id: string; nombre: string })[]
 }
 
 interface Coordenadas {
@@ -93,15 +93,17 @@ export default function MisReclamosClient() {
         return
       }
 
-      if (!loggedUser.area) {
+      if (!loggedUser.areas || loggedUser.areas.length === 0) {
         setError('No tienes un área asignada para ver reclamos.')
         return
       }
 
-      const areaId = typeof loggedUser.area === 'object' ? loggedUser.area.id : loggedUser.area
+      const areaIds = loggedUser.areas
+        .map((a: string | { id: string }) => (typeof a === 'object' ? a.id : a))
+        .join(',')
 
       const reclamosRes = await fetch(
-        `/api/reclamos?where[area_derivada][equals]=${areaId}&sort=createdAt&limit=0`,
+        `/api/reclamos?where[area_derivada][in]=${areaIds}&sort=createdAt&limit=0`,
         { credentials: 'include' },
       )
       const reclamosData = await reclamosRes.json()

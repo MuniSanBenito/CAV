@@ -1,11 +1,9 @@
 'use client'
 
 import { IconAlertCircle, IconId, IconLock, IconLogin2 } from '@tabler/icons-react'
-import { useRouter } from 'next/navigation'
 import { SubmitEvent, useState } from 'react'
 
 export default function LoginForm() {
-  const router = useRouter()
   const [dni, setDni] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -58,10 +56,10 @@ export default function LoginForm() {
       // Successful login — redirect based on role
       const userRole = data.user.role
       if (userRole === 'ejecutor') {
-        router.replace('/mis-reclamos') // Placeholder for the field worker's view
+        window.location.href = '/mis-reclamos'
       } else {
         // Admin, Carga, and Visualizador go to the main dashboard
-        router.replace('/dashboard')
+        window.location.href = '/dashboard'
       }
 
       /* const res = await fetch('/api/auth/login', {
