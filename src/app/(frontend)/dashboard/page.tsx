@@ -1,6 +1,6 @@
 import React from 'react'
 import DashboardHome from './DashboardHome'
-import { getCurrentUser, getPayloadClient } from '@/lib/auth'
+import { getPayloadClient } from '@/lib/auth'
 
 interface RecentReclamo {
   id: string
@@ -72,18 +72,9 @@ async function getRecent(): Promise<RecentReclamo[]> {
 }
 
 export default async function DashboardPage() {
-  // user ya fue garantizado por el layout (admin/carga/visualizador)
-  const [user, stats, recent] = await Promise.all([getCurrentUser(), getStats(), getRecent()])
+  const [stats, recent] = await Promise.all([getStats(), getRecent()])
 
   return (
-    <DashboardHome
-      user={{
-        nombre: user?.nombre ?? '',
-        apellido: user?.apellido ?? '',
-        role: user?.role ?? '',
-      }}
-      stats={stats}
-      recent={recent}
-    />
+    <DashboardHome user={{ nombre: '', apellido: '', role: '' }} stats={stats} recent={recent} />
   )
 }

@@ -13,7 +13,7 @@ import {
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 interface DashboardUser {
   nombre: string
@@ -29,16 +29,34 @@ const navItems = [
 
 // roleLabels imported from @/lib/constants
 
-export default function DashboardShell({
-  children,
-  user,
-}: {
-  children: React.ReactNode
-  user: DashboardUser
-}) {
+export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [user, setUser] = useState<DashboardUser | null>(null)
+  const [authChecking, setAuthChecking] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/users/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.user) {
+          router.replace('/login')
+          return
+        }
+        if (data.user.role === 'ejecutor') {
+          router.replace('/mis-reclamos')
+          return
+        }
+        setUser({
+          nombre: data.user.nombre ?? '',
+          apellido: data.user.apellido ?? '',
+          role: data.user.role ?? '',
+        })
+        setAuthChecking(false)
+      })
+      .catch(() => router.replace('/login'))
+  }, [router])
 
   async function handleLogout() {
     await fetch('/api/auth/logout', {
@@ -49,6 +67,14 @@ export default function DashboardShell({
       },
     })
     router.replace('/login')
+  }
+
+  if (authChecking || !user) {
+    return (
+      <div className="mis-reclamos-loading">
+        <span className="loading loading-spinner loading-lg" />
+      </div>
+    )
   }
 
   return (
