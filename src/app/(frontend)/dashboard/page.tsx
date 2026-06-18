@@ -15,11 +15,19 @@ interface Stats {
   en_proceso: number
   resuelto: number
   rechazado: number
+  vencidos: number
   total: number
 }
 
 async function getStats(): Promise<Stats> {
-  const stats: Stats = { pendiente: 0, en_proceso: 0, resuelto: 0, rechazado: 0, total: 0 }
+  const stats: Stats = {
+    pendiente: 0,
+    en_proceso: 0,
+    resuelto: 0,
+    rechazado: 0,
+    vencidos: 0,
+    total: 0,
+  }
   try {
     const payload = await getPayloadClient()
     const db = payload.db
@@ -28,15 +36,23 @@ async function getStats(): Promise<Stats> {
     ).connection.db
     const reclamosCol = mongoose.collection('reclamos') as {
       aggregate: (pipeline: Record<string, unknown>[]) => { toArray: () => Promise<unknown[]> }
+      countDocuments: (filter: Record<string, unknown>) => Promise<number>
     }
-    const results = (await reclamosCol
-      .aggregate([{ $group: { _id: '$estado', count: { $sum: 1 } } }])
-      .toArray()) as { _id: string; count: number }[]
+    const [results, vencidos] = await Promise.all([
+      reclamosCol
+        .aggregate([{ $group: { _id: '$estado', count: { $sum: 1 } } }])
+        .toArray() as Promise<{ _id: string; count: number }[]>,
+      reclamosCol.countDocuments({
+        estado: { $in: ['pendiente', 'en_proceso'] },
+        fechaCompromiso: { $lt: new Date() },
+      }),
+    ])
 
     for (const r of results) {
       if (r._id in stats) (stats as unknown as Record<string, number>)[r._id] = r.count
       stats.total += r.count
     }
+    stats.vencidos = vencidos
   } catch (e) {
     console.error('Stats error', e)
   }

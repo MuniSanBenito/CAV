@@ -16,5 +16,20 @@ export const Media: CollectionConfig = {
       required: true,
     },
   ],
-  upload: true,
+  upload: {
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    adminThumbnail: 'thumbnail',
+    imageSizes: [
+      {
+        name: 'thumbnail',
+        width: 400,
+        position: 'centre',
+      },
+      {
+        name: 'card',
+        width: 768,
+        position: 'centre',
+      },
+    ],
+  },
 }

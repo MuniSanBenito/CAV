@@ -13,9 +13,11 @@ import {
   IconMessage,
   IconBuildingCommunity,
   IconMapPin,
+  IconCamera,
 } from '@tabler/icons-react'
 import ContribuyenteSearch from './ContribuyenteSearch'
 import AddressSearch from '@/components/AddressSearch'
+import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
 
 // Dynamic import for Leaflet map (SSR-safe)
 const UbicacionMap = dynamic(() => import('./UbicacionMap'), { ssr: false })
@@ -151,6 +153,7 @@ export default function NuevoReclamoForm({
     }
   }
   const [observaciones, setObservaciones] = useState('')
+  const [fotos, setFotos] = useState<FotoItem[]>([])
 
   useEffect(() => {
     Promise.allSettled([
@@ -230,6 +233,11 @@ export default function NuevoReclamoForm({
 
     setSubmitting(true)
     try {
+      let fotosIds: string[] = []
+      if (fotos.length > 0) {
+        fotosIds = await uploadFotos(fotos, 'Reclamo')
+      }
+
       const body: Record<string, unknown> = {
         contribuyente: contribuyente.id,
         tipo,
@@ -241,6 +249,7 @@ export default function NuevoReclamoForm({
         concepto: concepto || undefined,
         estado: 'pendiente',
         observaciones: observaciones.trim() || undefined,
+        fotos: fotosIds.length > 0 ? fotosIds : undefined,
       }
 
       // Enviar datos de ubicación completos si existen
@@ -324,6 +333,7 @@ export default function NuevoReclamoForm({
                 setCoordenadas(null)
                 setConcepto('')
                 setObservaciones('')
+                setFotos([])
                 setCreatedNumero(null)
               }}
             >
@@ -506,6 +516,17 @@ export default function NuevoReclamoForm({
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
             />
+          </div>
+        </div>
+
+        {/* Section: Fotos */}
+        <div className="nuevo-section">
+          <div className="nuevo-section-header">
+            <IconCamera size={20} stroke={1.5} />
+            <span>Fotos</span>
+          </div>
+          <div className="modal-field">
+            <FotoUploader fotos={fotos} onChange={setFotos} disabled={submitting} />
           </div>
         </div>
 

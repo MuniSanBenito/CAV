@@ -43,6 +43,37 @@ export const tipoBadgeClass: Record<string, string> = {
   consulta: 'dash-badge--low',
 }
 
+// SLA: estado de cumplimiento según fechaCompromiso
+export type SlaStatus = 'vencido' | 'por_vencer' | 'en_plazo' | null
+
+const POR_VENCER_MS = 48 * 60 * 60 * 1000 // 48hs antes del vencimiento
+
+export function getSlaStatus(
+  fechaCompromiso?: string | null,
+  estado?: string | null,
+): SlaStatus {
+  if (!fechaCompromiso) return null
+  if (estado === 'resuelto' || estado === 'rechazado') return null
+  const due = new Date(fechaCompromiso).getTime()
+  if (Number.isNaN(due)) return null
+  const now = Date.now()
+  if (now > due) return 'vencido'
+  if (due - now <= POR_VENCER_MS) return 'por_vencer'
+  return 'en_plazo'
+}
+
+export const slaLabel: Record<string, string> = {
+  vencido: 'Vencido',
+  por_vencer: 'Por vencer',
+  en_plazo: 'En plazo',
+}
+
+export const slaBadgeClass: Record<string, string> = {
+  vencido: 'dash-badge--urgent',
+  por_vencer: 'dash-badge--high',
+  en_plazo: 'dash-badge--resolved',
+}
+
 export const roleLabels: Record<string, string> = {
   admin: 'Administrador',
   carga: 'Carga',

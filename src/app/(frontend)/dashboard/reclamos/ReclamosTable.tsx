@@ -21,6 +21,7 @@ import {
   IconSortDescending,
   IconFilter,
   IconRefresh,
+  IconDownload,
 } from '@tabler/icons-react'
 import {
   estadoLabel,
@@ -29,6 +30,9 @@ import {
   prioridadBadgeClass,
   tipoLabel,
   tipoBadgeClass,
+  getSlaStatus,
+  slaLabel,
+  slaBadgeClass,
 } from '@/lib/constants'
 
 interface Area {
@@ -54,6 +58,7 @@ interface Reclamo {
   prioridad: string
   contribuyente: Contribuyente | string
   createdAt: string
+  fechaCompromiso?: string | null
 }
 
 // All label/badge constants imported from @/lib/constants
@@ -93,6 +98,7 @@ export default function ReclamosTable() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [exporting, setExporting] = useState(false)
   const firstLoadDone = useRef(false)
 
   // Debounce search input (350ms) and reset to page 0
@@ -144,6 +150,16 @@ export default function ReclamosTable() {
     if (tipo) params.set('where[tipo][equals]', tipo)
     const areaId = columnFilters.find((f) => f.id === 'area_derivada')?.value as string | undefined
     if (areaId) params.set('where[area_derivada][equals]', areaId)
+    const sla = columnFilters.find((f) => f.id === 'sla')?.value as string | undefined
+    if (sla === 'vencido') {
+      params.set('where[fechaCompromiso][less_than]', new Date().toISOString())
+      params.set('where[estado][in]', 'pendiente,en_proceso')
+    } else if (sla === 'por_vencer') {
+      const limite = new Date(Date.now() + 48 * 60 * 60 * 1000)
+      params.set('where[fechaCompromiso][greater_than_equal]', new Date().toISOString())
+      params.set('where[fechaCompromiso][less_than_equal]', limite.toISOString())
+      params.set('where[estado][in]', 'pendiente,en_proceso')
+    }
 
     // Global search: OR across descripcion, contribuyente.*, numero
     if (debouncedSearch) {
@@ -189,6 +205,100 @@ export default function ReclamosTable() {
   ])
 
   const fetchData = () => setRefreshKey((k) => k + 1)
+
+  async function handleExportCSV() {
+    setExporting(true)
+    try {
+      const params = new URLSearchParams()
+      params.set('limit', '10000') // Export hasta 10k registros
+      params.set('depth', '1')
+
+      // Aplicar filtros actuales
+      const estado = columnFilters.find((f) => f.id === 'estado')?.value as string | undefined
+      if (estado) params.set('where[estado][equals]', estado)
+      const tipo = columnFilters.find((f) => f.id === 'tipo')?.value as string | undefined
+      if (tipo) params.set('where[tipo][equals]', tipo)
+      const areaId = columnFilters.find((f) => f.id === 'area_derivada')?.value as string | undefined
+      if (areaId) params.set('where[area_derivada][equals]', areaId)
+      const sla = columnFilters.find((f) => f.id === 'sla')?.value as string | undefined
+      if (sla === 'vencido') {
+        params.set('where[fechaCompromiso][less_than]', new Date().toISOString())
+        params.set('where[estado][in]', 'pendiente,en_proceso')
+      } else if (sla === 'por_vencer') {
+        const limite = new Date(Date.now() + 48 * 60 * 60 * 1000)
+        params.set('where[fechaCompromiso][greater_than_equal]', new Date().toISOString())
+        params.set('where[fechaCompromiso][less_than_equal]', limite.toISOString())
+        params.set('where[estado][in]', 'pendiente,en_proceso')
+      }
+      if (debouncedSearch) {
+        params.set('where[or][0][descripcion][like]', debouncedSearch)
+        params.set('where[or][1][contribuyente.nombre][like]', debouncedSearch)
+        params.set('where[or][2][contribuyente.apellido][like]', debouncedSearch)
+        params.set('where[or][3][contribuyente.dni][like]', debouncedSearch)
+        const asNumber = Number(debouncedSearch)
+        if (!Number.isNaN(asNumber) && /^\d+$/.test(debouncedSearch)) {
+          params.set('where[or][4][numero][equals]', String(asNumber))
+        }
+      }
+
+      const res = await fetch(`/api/reclamos?${params.toString()}`, { credentials: 'include' })
+      const json = await res.json()
+      const docs = json.docs || []
+
+      if (docs.length === 0) {
+        alert('No hay reclamos para exportar con los filtros actuales.')
+        return
+      }
+
+      // Generar CSV
+      const headers = [
+        'Número',
+        'Tipo',
+        'Estado',
+        'Prioridad',
+        'Área Derivada',
+        'Concepto',
+        'Contribuyente',
+        'DNI',
+        'Descripción',
+        'Fecha Creación',
+        'Fecha Compromiso',
+        'Fecha Resolución',
+      ]
+      const rows = docs.map((r: any) => [
+        r.numero || '',
+        r.tipo || '',
+        r.estado || '',
+        r.prioridad || '',
+        typeof r.area_derivada === 'object' ? r.area_derivada.nombre : r.area_derivada || '',
+        typeof r.concepto === 'object' ? r.concepto.nombre : r.concepto || '',
+        typeof r.contribuyente === 'object'
+          ? `${r.contribuyente.nombre} ${r.contribuyente.apellido}`
+          : r.contribuyente || '',
+        typeof r.contribuyente === 'object' ? r.contribuyente.dni || '' : '',
+        r.descripcion || '',
+        r.createdAt ? new Date(r.createdAt).toLocaleDateString('es-AR') : '',
+        r.fechaCompromiso ? new Date(r.fechaCompromiso).toLocaleDateString('es-AR') : '',
+        r.fechaResolucion ? new Date(r.fechaResolucion).toLocaleDateString('es-AR') : '',
+      ])
+
+      const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `reclamos-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error exportando CSV', err)
+      alert('Error al exportar CSV.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const columns = useMemo(
     () => [
@@ -247,6 +357,23 @@ export default function ReclamosTable() {
           </span>
         ),
       }),
+      columnHelper.accessor(
+        (row) => getSlaStatus(row.fechaCompromiso, row.estado),
+        {
+          id: 'sla',
+          header: 'SLA',
+          enableSorting: false,
+          cell: (info) => {
+            const status = info.getValue()
+            if (!status) return '—'
+            return (
+              <span className={`dash-badge ${slaBadgeClass[status] || ''}`}>
+                {slaLabel[status]}
+              </span>
+            )
+          },
+        },
+      ),
       columnHelper.accessor('createdAt', {
         header: 'Fecha',
         cell: (info) =>
@@ -377,6 +504,38 @@ export default function ReclamosTable() {
               ))}
             </select>
           </div>
+
+          <div className="reclamos-filter-group">
+            <select
+              id="filter-sla"
+              className="reclamos-filter-select"
+              value={(columnFilters.find((f) => f.id === 'sla')?.value as string) || ''}
+              onChange={(e) => {
+                setColumnFilters((prev) => {
+                  const next = prev.filter((f) => f.id !== 'sla')
+                  if (e.target.value) next.push({ id: 'sla', value: e.target.value })
+                  return next
+                })
+              }}
+            >
+              <option value="">SLA: todos</option>
+              <option value="vencido">Vencidos</option>
+              <option value="por_vencer">Por vencer (48hs)</option>
+            </select>
+          </div>
+
+          <button
+            className="reclamos-refresh-btn"
+            onClick={handleExportCSV}
+            title="Exportar CSV"
+            disabled={exporting}
+          >
+            {exporting ? (
+              <span className="loading loading-spinner loading-xs" />
+            ) : (
+              <IconDownload size={18} />
+            )}
+          </button>
 
           <button className="reclamos-refresh-btn" onClick={fetchData} title="Actualizar">
             <IconRefresh size={18} className={fetching || loading ? 'spin-animation' : ''} />

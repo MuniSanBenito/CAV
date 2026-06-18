@@ -1,6 +1,7 @@
 'use client'
 
 import { IconAlertCircle, IconId, IconLock, IconLogin2 } from '@tabler/icons-react'
+import ThemeToggle from '@/components/ThemeToggle'
 import { SubmitEvent, useState } from 'react'
 
 export default function LoginForm() {
@@ -94,6 +95,7 @@ export default function LoginForm() {
 
   return (
     <div className="login-page">
+      <ThemeToggle />
       {/* Decorative background shapes */}
       <div className="login-bg-shape login-bg-shape--1" />
       <div className="login-bg-shape login-bg-shape--2" />

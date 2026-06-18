@@ -14,6 +14,18 @@ export const Contribuyentes: CollectionConfig = {
     update: authenticated,
     delete: isAdmin,
   },
+  hooks: {
+    beforeValidate: [
+      async ({ data }) => {
+        // DNI vacío no debe guardarse: el índice unique es sparse y solo
+        // ignora documentos SIN el campo. Dos '' o null colisionarían.
+        if (data && typeof data.dni === 'string' && data.dni.trim() === '') {
+          delete data.dni
+        }
+        return data
+      },
+    ],
+  },
   fields: [
     {
       name: 'nombre',

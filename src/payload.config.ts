@@ -37,6 +37,11 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.DATABASE_URL || '',
   }),
+  upload: {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10 MB máximo por archivo
+    },
+  },
   sharp,
   plugins: [],
 })

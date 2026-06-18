@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { IconShieldLock, IconUserCircle, IconArrowRight } from '@tabler/icons-react'
+import ThemeToggle from '@/components/ThemeToggle'
 import './styles.css'
 
 export default async function HomePage() {
@@ -30,6 +31,7 @@ export default async function HomePage() {
 
   return (
     <div className="home-layout">
+      <ThemeToggle />
       {/* Decorative background shapes */}
       <div className="home-bg-shape home-bg-shape--1" />
       <div className="home-bg-shape home-bg-shape--2" />

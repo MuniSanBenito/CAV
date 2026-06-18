@@ -88,8 +88,8 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
 
   async function handleCreateNew() {
     setCreateError('')
-    if (!newForm.nombre.trim() || !newForm.apellido.trim() || !newForm.dni.trim()) {
-      setCreateError('Nombre, apellido y DNI son obligatorios.')
+    if (!newForm.nombre.trim() || !newForm.apellido.trim()) {
+      setCreateError('Nombre y apellido son obligatorios.')
       return
     }
     setCreating(true)
@@ -101,7 +101,7 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
         body: JSON.stringify({
           nombre: newForm.nombre.trim(),
           apellido: newForm.apellido.trim(),
-          dni: newForm.dni.trim(),
+          dni: newForm.dni.trim() || undefined,
           telefono: newForm.telefono.trim() || undefined,
           email: newForm.email.trim() || undefined,
           direccion: newForm.direccion.trim() || undefined,
@@ -131,7 +131,7 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
         </div>
         <div className="contrib-selected-info">
           <span className="contrib-selected-name">{value.nombre} {value.apellido}</span>
-          <span className="contrib-selected-dni">DNI: {value.dni}{value.telefono ? ` · Tel: ${value.telefono}` : ''}</span>
+          <span className="contrib-selected-dni">{value.dni ? `DNI: ${value.dni}` : 'Sin DNI'}{value.telefono ? ` · Tel: ${value.telefono}` : ''}</span>
         </div>
         <button type="button" className="contrib-clear-btn" onClick={clearSelection}>
           <IconX size={16} />
@@ -173,7 +173,7 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
                 </div>
                 <div className="contrib-dropdown-info">
                   <span className="contrib-dropdown-name">{c.nombre} {c.apellido}</span>
-                  <span className="contrib-dropdown-dni">DNI: {c.dni}</span>
+                  <span className="contrib-dropdown-dni">{c.dni ? `DNI: ${c.dni}` : 'Sin DNI'}</span>
                 </div>
                 <IconCheck size={16} className="contrib-dropdown-check" />
               </button>
@@ -228,7 +228,7 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
           </div>
           <div className="modal-row">
             <div className="modal-field">
-              <label className="modal-label">DNI <span className="modal-required">*</span></label>
+              <label className="modal-label">DNI</label>
               <input className="modal-input" placeholder="DNI" value={newForm.dni} onChange={(e) => setNewForm((p) => ({ ...p, dni: e.target.value }))} />
             </div>
             <div className="modal-field">

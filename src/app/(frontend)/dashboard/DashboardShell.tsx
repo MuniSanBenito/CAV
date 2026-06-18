@@ -9,7 +9,10 @@ import {
   IconLogout,
   IconMap,
   IconMenu2,
+  IconMoon,
+  IconSun,
   IconX,
+  IconChartBar,
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -25,6 +28,7 @@ const navItems = [
   { href: '/dashboard', label: 'Inicio', icon: IconLayoutDashboard },
   { href: '/dashboard/reclamos', label: 'Reclamos', icon: IconFileDescription },
   { href: '/dashboard/mapa', label: 'Mapa', icon: IconMap },
+  { href: '/dashboard/estadisticas', label: 'Estadísticas', icon: IconChartBar },
 ]
 
 // roleLabels imported from @/lib/constants
@@ -35,6 +39,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [user, setUser] = useState<DashboardUser | null>(null)
   const [authChecking, setAuthChecking] = useState(true)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    const saved = localStorage.getItem('cav-theme') as 'light' | 'dark' | null
+    if (saved === 'dark') {
+      setTheme('dark')
+      document.documentElement.setAttribute('data-theme', 'dark')
+    }
+  }, [])
+
+  function toggleTheme() {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    localStorage.setItem('cav-theme', next)
+    if (next === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+  }
 
   useEffect(() => {
     fetch('/api/users/me', { credentials: 'include' })
@@ -124,6 +148,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               </span>
               <span className="dash-user-role">{roleLabels[user.role] || user.role}</span>
             </div>
+          </div>
+          <div className="dash-theme-row">
+            <button className="dash-theme-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Cambiar a claro' : 'Cambiar a oscuro'}>
+              {theme === 'dark' ? <IconSun size={16} stroke={1.6} /> : <IconMoon size={16} stroke={1.6} />}
+              <span>{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span>
+            </button>
           </div>
           <button className="dash-logout-btn" onClick={handleLogout}>
             <IconLogout size={18} stroke={1.6} />

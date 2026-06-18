@@ -108,20 +108,34 @@ export interface Config {
   };
 }
 export interface UserAuthOperations {
-  forgotPassword: {
-    username: string;
-  };
-  login: {
-    password: string;
-    username: string;
-  };
+  forgotPassword:
+    | {
+        email: string;
+      }
+    | {
+        username: string;
+      };
+  login:
+    | {
+        email: string;
+        password: string;
+      }
+    | {
+        password: string;
+        username: string;
+      };
   registerFirstUser: {
     password: string;
     username: string;
+    email?: string;
   };
-  unlock: {
-    username: string;
-  };
+  unlock:
+    | {
+        email: string;
+      }
+    | {
+        username: string;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -215,6 +229,24 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -254,6 +286,10 @@ export interface Reclamo {
    * Días estimados para resolver el reclamo
    */
   diasResolucionEstimados?: number | null;
+  /**
+   * Fecha en que el reclamo pasó a resuelto (automática)
+   */
+  fechaResolucion?: string | null;
   estado: 'pendiente' | 'en_proceso' | 'resuelto' | 'rechazado';
   /**
    * Datos de ubicación geocodificada
@@ -492,6 +528,30 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -509,6 +569,7 @@ export interface ReclamosSelect<T extends boolean = true> {
   prioridad?: T;
   fechaCompromiso?: T;
   diasResolucionEstimados?: T;
+  fechaResolucion?: T;
   estado?: T;
   ubicacion?:
     | T

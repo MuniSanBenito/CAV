@@ -17,6 +17,7 @@ interface ReclamoStats {
   en_proceso: number
   resuelto: number
   rechazado: number
+  vencidos: number
   total: number
 }
 
@@ -99,6 +100,15 @@ export default function DashboardHome({
             </div>
           </div>
         ))}
+        <div className="stat-card stat-card--rejected">
+          <div className="stat-card-icon">
+            <IconAlertTriangle size={24} stroke={1.5} />
+          </div>
+          <div className="stat-card-data">
+            <span className="stat-card-number">{stats.vencidos}</span>
+            <span className="stat-card-label">Vencidos (SLA)</span>
+          </div>
+        </div>
       </div>
 
       {/* Recent activity */}

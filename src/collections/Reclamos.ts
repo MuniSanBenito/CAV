@@ -151,6 +151,15 @@ export const Reclamos: CollectionConfig = {
       },
     },
     {
+      name: 'fechaResolucion',
+      type: 'date',
+      index: true,
+      admin: {
+        readOnly: true,
+        description: 'Fecha en que el reclamo pasó a resuelto (automática)',
+      },
+    },
+    {
       name: 'estado',
       type: 'select',
       required: true,
@@ -363,12 +372,29 @@ export const Reclamos: CollectionConfig = {
           }
         }
 
+        // SLA: auto-calcular fechaCompromiso si no fue cargada manualmente
+        if (operation === 'create' && !data.fechaCompromiso) {
+          const dias = typeof data.diasResolucionEstimados === 'number' ? data.diasResolucionEstimados : 7
+          const compromiso = new Date()
+          compromiso.setDate(compromiso.getDate() + dias)
+          data.fechaCompromiso = compromiso.toISOString()
+        }
+
+        // SLA: registrar fechaResolucion al pasar a resuelto (y limpiarla si se reabre)
+        if (operation === 'update' && data.estado && originalDoc) {
+          if (data.estado === 'resuelto' && originalDoc.estado !== 'resuelto') {
+            data.fechaResolucion = new Date().toISOString()
+          } else if (data.estado !== 'resuelto' && originalDoc.estado === 'resuelto') {
+            data.fechaResolucion = null
+          }
+        }
+
         // FIX #2: Server-side append-only movimientos
         // The client sends `_nuevoMovimiento` with just the new entry.
         // We ignore any client-sent `movimientos` array and append server-side.
         if (operation === 'update') {
           const nuevoMov = (data as Record<string, unknown>)._nuevoMovimiento as
-            | { estado: string; nota: string }
+            | { estado: string; nota: string; adjuntos?: string[] }
             | undefined
           if (nuevoMov && req.user) {
             const existingMovimientos = (originalDoc?.movimientos as unknown[]) || []
@@ -379,12 +405,51 @@ export const Reclamos: CollectionConfig = {
                 nota: nuevoMov.nota,
                 fecha: new Date().toISOString(),
                 usuario: req.user.id,
+                adjuntos:
+                  Array.isArray(nuevoMov.adjuntos) && nuevoMov.adjuntos.length > 0
+                    ? nuevoMov.adjuntos
+                    : undefined,
               },
             ]
             delete (data as Record<string, unknown>)._nuevoMovimiento
           } else if (!nuevoMov) {
             // If no _nuevoMovimiento, preserve existing movimientos (prevent client overwrite)
             data.movimientos = (originalDoc?.movimientos as unknown[]) || []
+          }
+
+          // Trazabilidad: registrar derivación automáticamente si cambia el área
+          const nuevaAreaId = data.area_derivada
+            ? typeof data.area_derivada === 'string'
+              ? data.area_derivada
+              : (data.area_derivada as { id: string }).id
+            : null
+          const areaAnteriorId = originalDoc?.area_derivada
+            ? typeof originalDoc.area_derivada === 'string'
+              ? originalDoc.area_derivada
+              : (originalDoc.area_derivada as { id: string }).id
+            : null
+          if (nuevaAreaId && areaAnteriorId && nuevaAreaId !== areaAnteriorId && req.user) {
+            let nombreAnterior = 'otra área'
+            let nombreNueva = 'otra área'
+            try {
+              const [anterior, nueva] = await Promise.all([
+                req.payload.findByID({ collection: 'areas', id: areaAnteriorId, depth: 0, req }),
+                req.payload.findByID({ collection: 'areas', id: nuevaAreaId, depth: 0, req }),
+              ])
+              nombreAnterior = anterior?.nombre || nombreAnterior
+              nombreNueva = nueva?.nombre || nombreNueva
+            } catch {
+              // Si falla la búsqueda de nombres, registramos igual con texto genérico
+            }
+            data.movimientos = [
+              ...((data.movimientos as unknown[]) || []),
+              {
+                estado: data.estado || originalDoc?.estado || 'pendiente',
+                nota: `Reclamo derivado de "${nombreAnterior}" a "${nombreNueva}".`,
+                fecha: new Date().toISOString(),
+                usuario: req.user.id,
+              },
+            ]
           }
         }
 

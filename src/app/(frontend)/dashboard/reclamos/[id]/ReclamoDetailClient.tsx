@@ -13,7 +13,15 @@ import {
   IconAlertCircle,
   IconHistory,
 } from '@tabler/icons-react'
-import { estadoLabel, estadoBadgeClass, prioridadLabel } from '@/lib/constants'
+import {
+  estadoLabel,
+  estadoBadgeClass,
+  prioridadLabel,
+  getSlaStatus,
+  slaLabel,
+  slaBadgeClass,
+} from '@/lib/constants'
+import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
 
 // estadoLabel, estadoBadgeClass, prioridadLabel imported from @/lib/constants
 const estadoBadge = estadoBadgeClass
@@ -27,6 +35,7 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
   // Update state
   const [nuevoEstado, setNuevoEstado] = useState('')
   const [nuevaNota, setNuevaNota] = useState('')
+  const [nuevosAdjuntos, setNuevosAdjuntos] = useState<FotoItem[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -71,11 +80,17 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
 
     setSubmitting(true)
     try {
+      let adjuntosIds: string[] = []
+      if (nuevosAdjuntos.length > 0) {
+        adjuntosIds = await uploadFotos(nuevosAdjuntos, `Reclamo #${reclamo.numero} — movimiento`)
+      }
+
       const body = {
         estado: nuevoEstado,
         _nuevoMovimiento: {
           estado: nuevoEstado,
           nota: nuevaNota.trim(),
+          adjuntos: adjuntosIds.length > 0 ? adjuntosIds : undefined,
         },
       }
 
@@ -92,6 +107,7 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
 
       setSuccessMsg('Estado y nota actualizados correctamente.')
       setNuevaNota('')
+      setNuevosAdjuntos([])
       fetchDetail() // Reload to get the new history
     } catch (err: any) {
       setError(err.message || 'Error inesperado al guardar.')
@@ -127,6 +143,7 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
   }
 
   const { contribuyente, area_derivada, area_receptora, creadoPor } = reclamo
+  const slaStatus = getSlaStatus(reclamo.fechaCompromiso, reclamo.estado)
 
   return (
     <div className="nuevo-reclamo-page">
@@ -180,6 +197,11 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                 <span className={`dash-badge`}>
                   Prioridad {prioridadLabel[reclamo.prioridad] || reclamo.prioridad}
                 </span>
+                {slaStatus && (
+                  <span className={`dash-badge ${slaBadgeClass[slaStatus] || ''}`}>
+                    SLA: {slaLabel[slaStatus]}
+                  </span>
+                )}
               </div>
               <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>
                 <strong>{reclamo.descripcion}</strong>
@@ -214,6 +236,26 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                 {area_receptora && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <IconCircleCheck size={16} /> Recepcionado en: {area_receptora.nombre}
+                  </div>
+                )}
+                {reclamo.fechaCompromiso && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <IconClock size={16} /> Fecha compromiso:{' '}
+                    {new Date(reclamo.fechaCompromiso).toLocaleDateString('es-AR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </div>
+                )}
+                {reclamo.fechaResolucion && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <IconCircleCheck size={16} /> Resuelto el:{' '}
+                    {new Date(reclamo.fechaResolucion).toLocaleDateString('es-AR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </div>
                 )}
               </div>
@@ -310,6 +352,39 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.95rem' }}>{mov.nota}</p>
+                    {mov.adjuntos && mov.adjuntos.length > 0 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap',
+                          marginTop: '0.5rem',
+                        }}
+                      >
+                        {mov.adjuntos.map((adj: any) =>
+                          typeof adj === 'object' && adj?.url ? (
+                            <a
+                              key={adj.id}
+                              href={adj.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <img
+                                src={adj.url}
+                                alt={adj.alt || 'Adjunto del movimiento'}
+                                style={{
+                                  width: '64px',
+                                  height: '64px',
+                                  objectFit: 'cover',
+                                  borderRadius: 'var(--border-radius-s)',
+                                  border: '1px solid var(--theme-border)',
+                                }}
+                              />
+                            </a>
+                          ) : null,
+                        )}
+                      </div>
+                    )}
                     {mov.usuario && (
                       <div
                         style={{
@@ -385,6 +460,15 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                     onChange={(e) => setNuevaNota(e.target.value)}
                     placeholder="Detalles sobre por qué cambió el estado o el progreso actual..."
                     required
+                  />
+                </div>
+
+                <div className="modal-field">
+                  <label className="modal-label">Fotos o imágenes del movimiento</label>
+                  <FotoUploader
+                    fotos={nuevosAdjuntos}
+                    onChange={setNuevosAdjuntos}
+                    disabled={submitting}
                   />
                 </div>
 

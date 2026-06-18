@@ -18,6 +18,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
+import { compressImage } from '@/components/FotoUploader'
 
 interface User {
   id: string
@@ -147,9 +148,10 @@ export default function MisReclamosClient() {
     })
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFormFoto(e.target.files[0])
+      const compressed = await compressImage(e.target.files[0])
+      setFormFoto(compressed)
     }
   }
 
@@ -180,8 +182,14 @@ export default function MisReclamosClient() {
         fd.append('file', formFoto)
         fd.append('alt', `Resolución #${selectedReclamo.numero}`)
         const uploadRes = await fetch('/api/media', { method: 'POST', body: fd })
-        const uploadData = await uploadRes.json()
-        if (uploadData.doc?.id) fotoId = uploadData.doc.id
+        const uploadData = await uploadRes.json().catch(() => null)
+        if (uploadData?.doc?.id) {
+          fotoId = uploadData.doc.id
+        } else {
+          alert('No se pudo subir la foto. Intentá de nuevo.')
+          setResolving(false)
+          return
+        }
       }
 
       let notaFinal = formNota.trim()
