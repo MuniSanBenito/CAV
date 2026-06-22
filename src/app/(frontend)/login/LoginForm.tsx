@@ -2,7 +2,7 @@
 
 import { IconAlertCircle, IconId, IconLock, IconLogin2 } from '@tabler/icons-react'
 import ThemeToggle from '@/components/ThemeToggle'
-import { SubmitEvent, useState } from 'react'
+import React, { useState } from 'react'
 
 export default function LoginForm() {
   const [dni, setDni] = useState('')
@@ -10,7 +10,7 @@ export default function LoginForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
 

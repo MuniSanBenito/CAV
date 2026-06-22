@@ -65,7 +65,38 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
   }
 
   useEffect(() => {
-    fetchDetail()
+    let active = true
+
+    async function load() {
+      try {
+        setLoading(true)
+        const [reclamoRes, userRes] = await Promise.all([
+          fetch(`/api/reclamos/${id}?depth=2`, { credentials: 'include' }).then((r) => r.json()),
+          fetch('/api/users/me', { credentials: 'include' }).then((r) => r.json()),
+        ])
+
+        if (!active) return
+
+        if (reclamoRes && !reclamoRes.errors) {
+          setReclamo(reclamoRes)
+          setNuevoEstado(reclamoRes.estado || 'pendiente')
+        }
+        if (userRes?.user) {
+          setUser(userRes.user)
+        }
+      } catch (err) {
+        if (!active) return
+        console.error('Error fetching reclamo detail', err)
+        setError('Error al cargar la información del reclamo.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      active = false
+    }
   }, [id])
 
   async function handleStatusUpdate(e: FormEvent) {

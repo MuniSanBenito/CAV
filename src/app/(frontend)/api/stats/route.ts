@@ -1,23 +1,26 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { getMongoCollection } from '@/lib/mongodb'
 
 /**
  * Server-side stats endpoint.
  * Returns reclamo counts by estado using MongoDB aggregation
  * instead of fetching ALL documents and counting in the client.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const payload = await getPayload({ config })
-    const db = payload.db
-    const mongoose = (
-      db as unknown as { connection: { db: { collection: (name: string) => unknown } } }
-    ).connection.db
-    const reclamosCol = mongoose.collection('reclamos') as {
+
+    const { user } = await payload.auth({ headers: request.headers })
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const reclamosCol = getMongoCollection<{
       aggregate: (pipeline: Record<string, unknown>[]) => { toArray: () => Promise<unknown[]> }
       countDocuments: (filter: Record<string, unknown>) => Promise<number>
-    }
+    }>(payload, 'reclamos')
 
     const [estadoResults, areaResults, barrioResults, conceptoResults, tiempoResolucion, vencidos] =
       await Promise.all([

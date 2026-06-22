@@ -1,6 +1,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
+import { getMongoCollection } from '@/lib/mongodb'
 
 /**
  * GET /api/reclamos/nearby?lat=-31.7795&lng=-60.4414&radius=500
@@ -8,6 +9,13 @@ import { NextRequest, NextResponse } from 'next/server'
  */
 export async function GET(request: NextRequest) {
   try {
+    const payload = await getPayload({ config })
+
+    const { user } = await payload.auth({ headers: request.headers })
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
 
     const lat = parseFloat(searchParams.get('lat') || '')
@@ -29,17 +37,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const payload = await getPayload({ config })
-
     // Acceso directo a MongoDB para query geoespacial con $near
-    const db = payload.db
-    const mongoose = (
-      db as unknown as { connection: { db: { collection: (name: string) => unknown } } }
-    ).connection.db
-    const reclamosCollection = mongoose.collection('reclamos') as {
+    const reclamosCollection = getMongoCollection<{
       find: (query: unknown, options?: unknown) => Promise<unknown[]>
       findOne: (query: unknown) => Promise<unknown | null>
-    }
+    }>(payload, 'reclamos')
 
     // Query usando índice geoespacial 2dsphere directamente en MongoDB
     const docs = (await reclamosCollection.find(

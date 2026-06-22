@@ -1,6 +1,7 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Where } from 'payload'
 import { isAdmin, authenticated } from '../access/roles'
 import { geocodeAddress, extractBarrio, extractLocalidad } from '../lib/geocoding'
+import { getMongoCollection } from '../lib/mongodb'
 
 export const Reclamos: CollectionConfig = {
   slug: 'reclamos',
@@ -112,13 +113,12 @@ export const Reclamos: CollectionConfig = {
       name: 'concepto',
       type: 'relationship',
       relationTo: 'conceptos-reclamo',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filterOptions: (({ data }: { data: Record<string, unknown> }) => {
-        if (!data?.area_derivada) return { activo: { equals: true } }
+      filterOptions: ({ data }) => {
+        if (!data?.area_derivada) return { activo: { equals: true } } as Where
         return {
-          and: [{ area: { equals: data.area_derivada } }, { activo: { equals: true } }],
-        }
-      }) as any,
+          and: [{ area: { equals: data.area_derivada as string } }, { activo: { equals: true } }],
+        } as Where
+      },
       admin: {
         description: 'Concepto de reclamo según el área derivada',
       },
@@ -315,17 +315,13 @@ export const Reclamos: CollectionConfig = {
       async ({ data, operation, req }) => {
         if (operation === 'create') {
           // FIX #1: Atomic counter — use MongoDB findOneAndUpdate to avoid race conditions
-          const db = req.payload.db
-          const mongoose = (
-            db as unknown as { connection: { db: { collection: (name: string) => unknown } } }
-          ).connection.db
-          const countersCollection = mongoose.collection('counters') as {
+          const countersCollection = getMongoCollection<{
             findOneAndUpdate: (
               filter: Record<string, unknown>,
               update: Record<string, unknown>,
               options: Record<string, unknown>,
             ) => Promise<{ value: { seq: number } | null } | { seq: number } | null>
-          }
+          }>(req.payload, 'counters')
           const result = await countersCollection.findOneAndUpdate(
             { _id: 'reclamo_numero' },
             { $inc: { seq: 1 } },
