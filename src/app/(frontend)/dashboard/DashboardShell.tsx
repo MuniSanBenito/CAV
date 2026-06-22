@@ -13,6 +13,7 @@ import {
   IconSun,
   IconX,
   IconChartBar,
+  IconFileExport,
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -25,10 +26,16 @@ interface DashboardUser {
 }
 
 const navItems = [
-  { href: '/dashboard', label: 'Inicio', icon: IconLayoutDashboard },
-  { href: '/dashboard/reclamos', label: 'Reclamos', icon: IconFileDescription },
-  { href: '/dashboard/mapa', label: 'Mapa', icon: IconMap },
-  { href: '/dashboard/estadisticas', label: 'Estadísticas', icon: IconChartBar },
+  { href: '/dashboard', label: 'Inicio', icon: IconLayoutDashboard, roles: null },
+  { href: '/dashboard/reclamos', label: 'Reclamos', icon: IconFileDescription, roles: null },
+  { href: '/dashboard/mapa', label: 'Mapa', icon: IconMap, roles: null },
+  { href: '/dashboard/estadisticas', label: 'Estadísticas', icon: IconChartBar, roles: null },
+  {
+    href: '/dashboard/reportes',
+    label: 'Reportes',
+    icon: IconFileExport,
+    roles: ['admin', 'carga', 'visualizador'],
+  },
 ]
 
 // roleLabels imported from @/lib/constants
@@ -119,21 +126,23 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
 
         <nav className="dash-sidebar-nav">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`dash-nav-link ${isActive ? 'dash-nav-link--active' : ''}`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon size={20} stroke={1.6} />
-                <span>{item.label}</span>
-                {isActive && <IconChevronRight size={16} className="dash-nav-link-arrow" />}
-              </Link>
-            )
-          })}
+          {navItems
+            .filter((item) => !item.roles || item.roles.includes(user.role))
+            .map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`dash-nav-link ${isActive ? 'dash-nav-link--active' : ''}`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon size={20} stroke={1.6} />
+                  <span>{item.label}</span>
+                  {isActive && <IconChevronRight size={16} className="dash-nav-link-arrow" />}
+                </Link>
+              )
+            })}
         </nav>
 
         <div className="dash-sidebar-footer">
