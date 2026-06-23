@@ -3,6 +3,8 @@ import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
 import { getMongoCollection } from '@/lib/mongodb'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Server-side stats endpoint.
  * Returns reclamo counts by estado using MongoDB aggregation

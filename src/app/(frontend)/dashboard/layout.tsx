@@ -1,6 +1,8 @@
 import React from 'react'
 import DashboardShell from './DashboardShell'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Dashboard — CAV San Benito',
   description: 'Panel de gestión del Centro de Atención al Vecino',

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMongoCollection } from '@/lib/mongodb'
 import { ObjectId } from 'bson'
 
+export const dynamic = 'force-dynamic'
+
 const ALLOWED_ROLES = ['admin', 'carga', 'visualizador']
 const MAX_RESULTS = 5000
 
