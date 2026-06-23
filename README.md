@@ -1,67 +1,209 @@
-# Payload Blank Template
+# Centro de Atención al Vecino (CAV) — Municipalidad de San Benito
 
-This template comes configured with the bare minimum to get started on anything you need.
+Sistema web de gestión de reclamos ciudadanos para la Municipalidad de San Benito. Permite a los vecinos reportar problemas y realizar seguimiento de sus reclamos, mientras que los municipales pueden gestionar y resolverlos eficientemente.
 
-## Quick start
+## 🚀 Stack Tecnológico
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+- **Payload CMS 3.85** — Headless CMS para gestión de contenido y autenticación
+- **Next.js 16** — Framework React para el frontend
+- **MongoDB** — Base de datos NoSQL
+- **TypeScript** — Tipado estático
+- **Tailwind CSS 4 + DaisyUI** — Estilos y componentes UI
+- **Leaflet + React-Leaflet** — Mapas interactivos
+- **Playwright** — Tests E2E
+- **Vitest** — Tests unitarios/integración
 
-## Quick Start - local setup
+## 👥 Roles de Usuario
 
-To spin up this template locally, follow these steps:
+El sistema cuenta con cuatro roles con diferentes permisos:
 
-### Clone
+- **admin** — Acceso completo al panel de administración de Payload
+- **carga** — Carga reclamos mediante el formulario ciudadano
+- **ejecutor** — Asignado a un área municipal, gestiona y resuelve reclamos
+- **visualizador** — Solo lectura de estadísticas y reclamos
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+## 📁 Colecciones
 
-### Development
+- **users** — Colección de autenticación con roles y área asignada (para ejecutores)
+- **areas** — Áreas municipales (nombre, descripción, estado activo/inactivo)
+- **media** — Gestión de archivos e imágenes
+- **contribuyentes** — Información de los ciudadanos que realizan reclamos
+- **conceptosReclamo** — Categorías/tipos de reclamos disponibles
+- **reclamos** — Core del sistema: reclamos con estado, ubicación, asignación y seguimiento
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URL` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+## 🔐 Control de Acceso
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+Las funciones de control de acceso están centralizadas en `src/access/roles.ts`:
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+- `anyone` — Acceso público
+- `authenticated` — Solo usuarios autenticados
+- `isAdmin` — Solo administradores
+- `isAdminOrSelf` — Admin o el propio usuario
 
-#### Docker (Optional)
+## 🛠️ Scripts Disponibles
 
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
+```bash
+# Desarrollo
+pnpm dev              # Iniciar servidor de desarrollo
+pnpm devsafe          # Limpiar .next y iniciar dev server
 
-To do so, follow these steps:
+# Build
+pnpm build            # Build de producción
+pnpm start            # Iniciar servidor de producción
 
-- Modify the `MONGODB_URL` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URL` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
+# Payload
+pnpm generate:types   # Generar tipos TypeScript después de cambios en schema
+pnpm generate:importmap # Generar import map para componentes
+pnpm payload          # CLI de Payload
 
-## How it works
+# Tests
+pnpm test             # Ejecutar todos los tests
+pnpm test:int         # Tests de integración (Vitest)
+pnpm test:e2e         # Tests E2E (Playwright)
 
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+# Utilidades
+pnpm lint             # Linting con ESLint
+pnpm seed             # Seed de datos de prueba
+pnpm update           # Actualizar dependencias
+```
 
-### Collections
+## 📋 Requisitos Previos
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+- **Node.js**: 18.20.2 o >=20.9.0
+- **pnpm**: 9 o 10
+- **MongoDB**: Instancia local o en la nube
 
-- #### Users (Authentication)
+## 🚀 Instalación y Configuración
 
-  Users are auth-enabled collections that have access to the admin panel.
+1. **Clonar el repositorio**
+   ```bash
+   git clone <repo-url>
+   cd CAV
+   ```
 
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/main/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
+2. **Instalar dependencias**
+   ```bash
+   pnpm install
+   ```
 
-- #### Media
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env
+   ```
+   Editar `.env` con tus credenciales:
+   ```
+   DATABASE_URL=mongodb://localhost:27017/cav-san-benito
+   PAYLOAD_SECRET=tu-secret-key-aqui
+   NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+   ```
 
-  This is the uploads enabled collection. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
+4. **Iniciar servidor de desarrollo**
+   ```bash
+   pnpm dev
+   ```
 
-### Docker
+5. **Abrir en el navegador**
+   ```
+   http://localhost:3000
+   ```
 
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
+## 🐳 Docker (Opcional)
 
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
+Si prefieres usar Docker para la base de datos local:
 
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
+1. Configurar `MONGODB_URL` en `.env`:
+   ```
+   MONGODB_URL=mongodb://127.0.0.1/cav-san-benito
+   ```
 
-## Questions
+2. Modificar `docker-compose.yml` con el mismo nombre de base de datos
 
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+3. Iniciar contenedor:
+   ```bash
+   docker-compose up -d
+   ```
+
+## 📂 Estructura del Proyecto
+
+```
+src/
+├── access/              # Funciones de control de acceso
+│   └── roles.ts
+├── app/                 # Rutas de Next.js
+│   ├── (frontend)/      # Rutas públicas del frontend
+│   ├── (payload)/       # Panel de administración de Payload
+│   └── api/             # API routes
+├── collections/         # Configuraciones de colecciones de Payload
+│   ├── Users.ts
+│   ├── Areas.ts
+│   ├── Media.ts
+│   ├── Reclamos.ts
+│   ├── ConceptosReclamo.ts
+│   └── Contribuyentes.ts
+├── components/          # Componentes React reutilizables
+├── hooks/               # Hooks personalizados
+├── payload.config.ts    # Configuración principal de Payload
+└── payload-types.ts     # Tipos generados automáticamente
+```
+
+## 🔧 Desarrollo
+
+### Después de modificar colecciones
+
+Si modificas el schema de cualquier colección, regenera los tipos:
+
+```bash
+pnpm generate:types
+```
+
+### Crear componentes personalizados
+
+Los componentes del panel de Payload se definen usando rutas de archivo en `payload.config.ts`. Después de crear/modificar componentes:
+
+```bash
+pnpm generate:importmap
+```
+
+### Validar TypeScript
+
+```bash
+tsc --noEmit
+```
+
+## 🧪 Testing
+
+```bash
+# Tests de integración
+pnpm test:int
+
+# Tests E2E
+pnpm test:e2e
+
+# Todos los tests
+pnpm test
+```
+
+## 📦 Build para Producción
+
+```bash
+pnpm build
+pnpm start
+```
+
+## 🔒 Seguridad
+
+- El sistema usa control de acceso basado en roles (RBAC)
+- Las operaciones del Local API requieren `overrideAccess: false` cuando se pasa un usuario
+- Los hooks siempre deben pasar `req` para mantener atomicidad en transacciones
+- Los roles se incluyen en el JWT para acceso rápido
+
+## 📞 Soporte
+
+Para preguntas sobre Payload CMS:
+- [Discord oficial](https://discord.com/invite/payload)
+- [GitHub Discussions](https://github.com/payloadcms/payload/discussions)
+- [Documentación oficial](https://payloadcms.com/docs)
+
+## 📄 Licencia
+
+MIT
