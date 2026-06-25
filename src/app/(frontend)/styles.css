@@ -78,6 +78,10 @@
   --c-nav-active-text: #ffffff;
   --c-nav-active-border: #b6c544;
 
+  /* ── Avatar usuario (sidebar) ── */
+  --c-avatar-bg: #b6c544;
+  --c-avatar-text: #076633;
+
   /* ── Select options ── */
   --c-select-bg: #ffffff;
   --c-select-text: #1a2e1a;
@@ -118,6 +122,9 @@
   --c-nav-active: rgba(182, 197, 68, 0.12);
   --c-nav-active-text: #b6c544;
   --c-nav-active-border: #b6c544;
+
+  --c-avatar-bg: #076633;
+  --c-avatar-text: #ffffff;
 
   --c-select-bg: #1a1a1a;
   --c-select-text: #e0e0e0;
@@ -1011,13 +1018,13 @@ svg {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #076633;
+  background: var(--c-avatar-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: var(--c-avatar-text);
   text-transform: uppercase;
   flex-shrink: 0;
 }
