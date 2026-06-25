@@ -88,7 +88,7 @@
   --c-table-hover: #f5fbf5;
 }
 
-[data-theme=dark] {
+[data-theme='dark'] {
   --c-page: #0c120c;
   --c-sidebar: #0a0f0a;
   --c-header-strip: #090e09;
@@ -705,7 +705,6 @@ svg {
   color: #fff;
   margin-bottom: 16px;
 }
-
 
 .login-title {
   font-family: var(--font-outfit), system-ui, sans-serif;
@@ -2462,6 +2461,7 @@ svg {
 
 .ubicacion-search-row {
   display: flex;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
@@ -2499,8 +2499,7 @@ svg {
   }
 }
 
-.ubicacion-search-btn,
-.ubicacion-center-btn {
+.ubicacion-search-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2513,6 +2512,28 @@ svg {
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+
+  &:hover {
+    background: rgba(182, 197, 68, 0.1);
+    color: #b6c544;
+    border-color: rgba(182, 197, 68, 0.3);
+  }
+}
+
+.ubicacion-center-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-card-alt);
+  color: var(--c-text-2);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
     background: rgba(182, 197, 68, 0.1);

@@ -1,23 +1,23 @@
 'use client'
 
-import React, { useState, useEffect, FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-import {
-  IconArrowLeft,
-  IconSend,
-  IconAlertCircle,
-  IconCircleCheck,
-  IconHash,
-  IconCategory,
-  IconMessage,
-  IconBuildingCommunity,
-  IconMapPin,
-  IconCamera,
-} from '@tabler/icons-react'
-import ContribuyenteSearch from './ContribuyenteSearch'
 import AddressSearch from '@/components/AddressSearch'
 import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
+import {
+  IconAlertCircle,
+  IconArrowLeft,
+  IconBuildingCommunity,
+  IconCamera,
+  IconCategory,
+  IconCircleCheck,
+  IconHash,
+  IconMapPin,
+  IconMessage,
+  IconSend,
+} from '@tabler/icons-react'
+import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
+import { FormEvent, useEffect, useState } from 'react'
+import ContribuyenteSearch from './ContribuyenteSearch'
 
 // Dynamic import for Leaflet map (SSR-safe)
 const UbicacionMap = dynamic(() => import('./UbicacionMap'), { ssr: false })

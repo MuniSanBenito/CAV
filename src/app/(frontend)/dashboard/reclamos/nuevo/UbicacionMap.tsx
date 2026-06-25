@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useEffect, useRef, useState, useCallback } from 'react'
-import { IconMapPin, IconCurrentLocation } from '@tabler/icons-react'
-import 'leaflet/dist/leaflet.css'
+import { IconCurrentLocation, IconMapPin } from '@tabler/icons-react'
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import iconUrl from 'leaflet/dist/images/marker-icon.png'
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
+import 'leaflet/dist/leaflet.css'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface Coords {
   lat: number
@@ -188,14 +188,9 @@ export default function UbicacionMap({
     <div className="ubicacion-wrap">
       {/* Center button */}
       <div className="ubicacion-search-row">
-        <button
-          type="button"
-          className="ubicacion-center-btn"
-          onClick={centerOnSanBenito}
-          title="Centrar en San Benito"
-        >
-          <IconCurrentLocation size={18} />
-          <span className="text-sm">Centrar en San Benito</span>
+        <button type="button" className="ubicacion-center-btn" onClick={centerOnSanBenito}>
+          <IconCurrentLocation size={16} stroke={1.75} />
+          Centrar en San Benito
         </button>
       </div>
 

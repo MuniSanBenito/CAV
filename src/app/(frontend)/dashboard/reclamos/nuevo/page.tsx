@@ -1,4 +1,3 @@
-import React from 'react'
 import NuevoReclamoForm from './NuevoReclamoForm'
 
 export const metadata = {
