@@ -771,40 +771,53 @@ svg {
   text-transform: uppercase;
 }
 
-.login-input-wrap {
-  position: relative;
-}
-
 .login-input-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--c-text-3);
+  flex-shrink: 0;
+  color: #3b5a3b;
   pointer-events: none;
 }
 
+[data-theme='dark'] .login-input-icon {
+  color: var(--c-text-3);
+}
+
 .login-input {
-  padding-left: 42px !important;
+  gap: 10px;
+  padding-inline: 14px !important;
   background: var(--c-input) !important;
   border: 1px solid var(--c-input-border) !important;
   border-radius: 10px !important;
-  color: var(--c-text-1) !important;
-  font-size: 15px !important;
   height: 48px;
+  min-height: 48px;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 
-  &::placeholder {
-    color: var(--c-text-4);
-  }
-
-  &:focus {
+  &:focus-within {
     border-color: #b6c544 !important;
     box-shadow: 0 0 0 3px rgba(182, 197, 68, 0.15) !important;
     outline: none;
   }
+}
+
+.login-input-field {
+  color: var(--c-text-1) !important;
+  font-size: 15px !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+
+  &::placeholder {
+    color: var(--c-text-3);
+  }
+}
+
+[data-theme='dark'] .login-input-field::placeholder {
+  color: var(--c-text-4);
 }
 
 /* Submit button */

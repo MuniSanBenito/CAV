@@ -1,7 +1,7 @@
 'use client'
 
-import { IconAlertCircle, IconId, IconLock, IconLogin2 } from '@tabler/icons-react'
 import ThemeToggle from '@/components/ThemeToggle'
+import { IconAlertCircle, IconId, IconLock, IconLogin2 } from '@tabler/icons-react'
 import React, { useState } from 'react'
 
 export default function LoginForm() {
@@ -125,13 +125,13 @@ export default function LoginForm() {
             {/* DNI */}
             <label className="login-field">
               <span className="login-field-label">DNI</span>
-              <div className="login-input-wrap">
+              <div className="input input-bordered w-full login-input">
                 <IconId size={18} stroke={1.6} className="login-input-icon" />
                 <input
                   id="login-dni"
                   type="text"
                   inputMode="numeric"
-                  className="input input-bordered w-full login-input"
+                  className="grow login-input-field"
                   placeholder="12345678"
                   autoComplete="username"
                   value={dni}
@@ -143,12 +143,12 @@ export default function LoginForm() {
             {/* Password */}
             <label className="login-field">
               <span className="login-field-label">Contraseña</span>
-              <div className="login-input-wrap">
+              <div className="input input-bordered w-full login-input">
                 <IconLock size={18} stroke={1.6} className="login-input-icon" />
                 <input
                   id="login-password"
                   type="password"
-                  className="input input-bordered w-full login-input"
+                  className="grow login-input-field"
                   placeholder="••••••••"
                   autoComplete="current-password"
                   value={password}
