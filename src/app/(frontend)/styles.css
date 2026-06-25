@@ -3278,7 +3278,7 @@ svg {
   padding: 8px 0;
   font-family: var(--font-outfit), system-ui, sans-serif;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--c-text-2);
 }
 
 .mapa-legend-item {
@@ -3291,8 +3291,16 @@ svg {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid var(--c-border);
   flex-shrink: 0;
+}
+
+[data-theme='dark'] .mapa-legend {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme='dark'] .mapa-legend-dot {
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .mapa-container {
