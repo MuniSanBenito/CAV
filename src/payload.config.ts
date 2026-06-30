@@ -2,15 +2,16 @@ import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
-import { fileURLToPath } from 'url'
 import sharp from 'sharp'
+import { fileURLToPath } from 'url'
 
-import { Users } from './collections/Users'
-import { Media } from './collections/Media'
 import { Areas } from './collections/Areas'
 import { ConceptosReclamo } from './collections/ConceptosReclamo'
-import { Reclamos } from './collections/Reclamos'
 import { Contribuyentes } from './collections/Contribuyentes'
+import { Media } from './collections/Media'
+import { Reclamos } from './collections/Reclamos'
+import { Users } from './collections/Users'
+import { storagePlugin } from './plugins/storage'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -43,5 +44,5 @@ export default buildConfig({
     },
   },
   sharp,
-  plugins: [],
+  plugins: [storagePlugin],
 })

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isAdmin, authenticated } from '../access/roles'
+import { authenticated, isAdmin } from '../access/roles'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -19,16 +19,20 @@ export const Media: CollectionConfig = {
   upload: {
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     adminThumbnail: 'thumbnail',
+    focalPoint: true,
     imageSizes: [
       {
         name: 'thumbnail',
-        width: 400,
-        position: 'centre',
+        width: 300,
       },
       {
-        name: 'card',
-        width: 768,
-        position: 'centre',
+        name: 'square',
+        width: 500,
+        height: 500,
+      },
+      {
+        name: 'small',
+        width: 600,
       },
     ],
   },
