@@ -433,7 +433,7 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
             </div>
           </div>
 
-          {user?.role !== 'visualizador' && (
+          {(user?.role === 'admin' || user?.role === 'carga') && (
             <div className="nuevo-section" style={{ margin: 0 }}>
               <div className="nuevo-section-header">
                 <span>Actualizar Estado / Agregar Nota</span>

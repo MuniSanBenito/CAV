@@ -1,7 +1,18 @@
 import type { CollectionConfig, Where } from 'payload'
+import { APIError } from 'payload'
 import { isAdmin, authenticated } from '../access/roles'
 import { geocodeAddress, extractBarrio, extractLocalidad } from '../lib/geocoding'
 import { getMongoCollection } from '../lib/mongodb'
+
+const TERMINAL_ESTADOS = ['resuelto', 'rechazado'] as const
+const EJECUTOR_ESTADOS = ['en_proceso', 'resuelto', 'rechazado'] as const
+const EJECUTOR_ALLOWED_UPDATE_KEYS = new Set([
+  'estado',
+  '_nuevoMovimiento',
+  'fotos',
+  'coordenadas',
+  'ubicacion',
+])
 
 export const Reclamos: CollectionConfig = {
   slug: 'reclamos',
@@ -342,23 +353,41 @@ export const Reclamos: CollectionConfig = {
             }
           }
         }
-        if (
-          operation === 'update' &&
-          req.user?.role === 'ejecutor' &&
-          req.user.areas &&
-          req.user.areas.length > 0
-        ) {
-          if (data) {
-            const firstArea = req.user.areas[0]
-            ;(data as Record<string, unknown>).area_derivada =
-              typeof firstArea === 'string' ? firstArea : firstArea.id
-          }
-        }
         return data
       },
     ],
     beforeChange: [
       async ({ req, operation, data, originalDoc }) => {
+        if (operation === 'update' && req.user?.role === 'ejecutor' && originalDoc && data) {
+          const originalEstado = originalDoc.estado as string
+          if (TERMINAL_ESTADOS.includes(originalEstado as (typeof TERMINAL_ESTADOS)[number])) {
+            throw new APIError('Reclamo cerrado; contacte a administración', 403)
+          }
+
+          const incoming = data as Record<string, unknown>
+          for (const key of Object.keys(incoming)) {
+            if (!EJECUTOR_ALLOWED_UPDATE_KEYS.has(key)) {
+              throw new APIError('No autorizado a modificar este campo', 403)
+            }
+          }
+
+          const nuevoEstado = incoming.estado as string | undefined
+          if (!nuevoEstado || !EJECUTOR_ESTADOS.includes(nuevoEstado as (typeof EJECUTOR_ESTADOS)[number])) {
+            throw new APIError('Estado no permitido', 400)
+          }
+
+          if (!incoming._nuevoMovimiento) {
+            throw new APIError('Debe incluir un movimiento', 400)
+          }
+
+          if (incoming.ubicacion && typeof incoming.ubicacion === 'object') {
+            incoming.ubicacion = {
+              ...((originalDoc.ubicacion as Record<string, unknown> | undefined) || {}),
+              ...(incoming.ubicacion as Record<string, unknown>),
+            }
+          }
+        }
+
         if (operation === 'create' && req.user) {
           data.creadoPor = req.user.id
           // Auto-set area_receptora from user's first area if available

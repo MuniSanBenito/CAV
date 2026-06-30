@@ -49,6 +49,12 @@ interface Reclamo {
 
 // estadoLabel, estadoBadgeClass, cardGlowClass imported from @/lib/constants
 
+const TERMINAL_ESTADOS = ['resuelto', 'rechazado']
+
+function isTerminalEstado(estado: string) {
+  return TERMINAL_ESTADOS.includes(estado)
+}
+
 export default function MisReclamosClient() {
   const router = useRouter()
 
@@ -169,7 +175,7 @@ export default function MisReclamosClient() {
     if (!selectedReclamo || !user) return
 
     if (formEstado !== 'resuelto' && !formNota.trim()) {
-      alert('Debes ingresar una nota si el reclamo no fue resuelto.')
+      alert('Debes ingresar una nota si el reclamo no fue resuelto o fue rechazado.')
       return
     }
 
@@ -202,21 +208,35 @@ export default function MisReclamosClient() {
         : []
       if (fotoId) fotosCargadas.push(fotoId)
 
+      const movimientoAdjuntos = fotoId ? [fotoId] : undefined
+
+      const patchBody: Record<string, unknown> = {
+        estado: formEstado,
+        _nuevoMovimiento: {
+          estado: formEstado,
+          nota: notaFinal || 'Atención completada en sitio.',
+          adjuntos: movimientoAdjuntos,
+        },
+        fotos: fotosCargadas,
+      }
+
+      if (formCoords) {
+        patchBody.coordenadas = { lat: formCoords.lat, lng: formCoords.lng }
+        patchBody.ubicacion = { location: [formCoords.lng, formCoords.lat] }
+      }
+
       const patchRes = await fetch(`/api/reclamos/${selectedReclamo.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          estado: formEstado,
-          _nuevoMovimiento: {
-            estado: formEstado,
-            nota: notaFinal || 'Atención completada en sitio.',
-          },
-          fotos: fotosCargadas,
-        }),
+        body: JSON.stringify(patchBody),
       })
 
       if (patchRes.ok) {
-        // Refresh from server to get the authoritative movimientos
+        await fetchUserAndReclamos()
+        closeResolution()
+      } else if (patchRes.status === 403) {
+        const errData = await patchRes.json().catch(() => null)
+        alert(errData?.errors?.[0]?.message || 'Este reclamo ya está cerrado y no puede modificarse.')
         await fetchUserAndReclamos()
         closeResolution()
       } else {
@@ -391,12 +411,14 @@ export default function MisReclamosClient() {
                     <p className="mis-reclamo-card-desc">{reclamo.descripcion}</p>
                   )}
 
-                  <button
-                    className="mis-reclamo-card-action-btn"
-                    onClick={() => openResolution(reclamo)}
-                  >
-                    Actuar <IconArrowLeft size={15} style={{ transform: 'rotate(180deg)' }} />
-                  </button>
+                  {!isTerminalEstado(reclamo.estado) && (
+                    <button
+                      className="mis-reclamo-card-action-btn"
+                      onClick={() => openResolution(reclamo)}
+                    >
+                      Actuar <IconArrowLeft size={15} style={{ transform: 'rotate(180deg)' }} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -440,6 +462,23 @@ export default function MisReclamosClient() {
                     />
                     <IconCircleCheck size={20} />
                     <span>Completado exitosamente</span>
+                  </label>
+                  <label
+                    className={`mis-reclamos-estado-option${
+                      formEstado === 'rechazado'
+                        ? ' mis-reclamos-estado-option--rechazado-active'
+                        : ''
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="rechazado"
+                      checked={formEstado === 'rechazado'}
+                      onChange={() => setFormEstado('rechazado')}
+                    />
+                    <IconAlertTriangle size={20} />
+                    <span>Rechazado / No procede</span>
                   </label>
                   <label
                     className={`mis-reclamos-estado-option${

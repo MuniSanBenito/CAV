@@ -75,7 +75,7 @@ export default function DashboardHome({
             <IconFileDescription size={18} />
             Ver Reclamos
           </Link>
-          {user?.role !== 'visualizador' && (
+          {(user?.role === 'admin' || user?.role === 'carga') && (
             <Link
               href="/dashboard/reclamos/nuevo"
               className="dash-action-btn dash-action-btn--primary"
@@ -127,7 +127,7 @@ export default function DashboardHome({
           <div className="dash-empty">
             <IconFileDescription size={48} stroke={1} className="dash-empty-icon" />
             <p>No hay reclamos cargados aún.</p>
-            {user?.role !== 'visualizador' && (
+            {(user?.role === 'admin' || user?.role === 'carga') && (
               <Link
                 href="/dashboard/reclamos/nuevo"
                 className="dash-action-btn dash-action-btn--primary"

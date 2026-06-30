@@ -43,8 +43,7 @@
     "react-dom": "19.2.7",
     "react-leaflet": "5.0.0",
     "sharp": "0.35.2",
-    "tailwindcss": "4.3.1",
-    "xlsx": "^0.18.5"
+    "tailwindcss": "4.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.61.0",

@@ -169,7 +169,8 @@ export default function NuevoReclamoForm({
         if (userResult.status === 'fulfilled') {
           const userData = userResult.value
           if (userData?.user) {
-            if (userData.user.role === 'visualizador') {
+            const allowedRoles = ['admin', 'carga', 'ejecutor']
+            if (!allowedRoles.includes(userData.user.role)) {
               router.replace('/dashboard/reclamos')
               return
             }

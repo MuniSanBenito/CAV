@@ -128,6 +128,7 @@
 
   --c-select-bg: #1a1a1a;
   --c-select-text: #e0e0e0;
+  --c-date-picker-filter: invert(0.85);
 
   --c-table-header: rgba(255, 255, 255, 0.04);
   --c-table-border: rgba(255, 255, 255, 0.06);
@@ -1577,14 +1578,21 @@ svg {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+}
+
+.reclamos-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .reclamos-search-wrap {
   position: relative;
   flex: 1;
   min-width: 200px;
-  max-width: 340px;
+  max-width: 420px;
 }
 
 .reclamos-search-icon {
@@ -1648,6 +1656,25 @@ svg {
 
   &:focus {
     border-color: rgba(182, 197, 68, 0.3);
+  }
+
+  &[type='date'] {
+    height: 36px;
+    padding: 0 12px;
+    line-height: 1;
+    box-sizing: border-box;
+    color-scheme: light dark;
+
+    &::-webkit-datetime-edit,
+    &::-webkit-datetime-edit-fields-wrapper {
+      padding: 0;
+    }
+
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+      filter: var(--c-date-picker-filter, none);
+    }
   }
 
   option {
@@ -3097,6 +3124,12 @@ svg {
   background: rgba(123, 203, 226, 0.1) !important;
   border-color: rgba(123, 203, 226, 0.3) !important;
   color: #7bcbe2 !important;
+}
+
+.mis-reclamos-estado-option--rechazado-active {
+  background: rgba(255, 107, 107, 0.1) !important;
+  border-color: rgba(255, 107, 107, 0.3) !important;
+  color: #ff6b6b !important;
 }
 
 /* Evidence grid */

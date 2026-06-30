@@ -79,6 +79,86 @@ const SORT_FIELD_MAP: Record<string, string> = {
   createdAt: 'createdAt',
 }
 
+function escapeCsvCell(value: unknown): string {
+  const str = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  return str
+}
+
+function toStartOfDayISO(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00`).toISOString()
+}
+
+function toEndOfDayISO(dateStr: string): string {
+  return new Date(`${dateStr}T23:59:59.999`).toISOString()
+}
+
+function buildReclamosQueryParams(options: {
+  columnFilters: ColumnFiltersState
+  debouncedSearch: string
+  sorting: SortingState
+  fechaDesde?: string
+  fechaHasta?: string
+  pagination?: { pageIndex: number; pageSize: number }
+  exportAll?: boolean
+}): URLSearchParams {
+  const { columnFilters, debouncedSearch, sorting, fechaDesde, fechaHasta, pagination, exportAll } =
+    options
+  const params = new URLSearchParams()
+  params.set('depth', '1')
+
+  if (exportAll) {
+    params.set('limit', '0')
+  } else if (pagination) {
+    params.set('limit', String(pagination.pageSize))
+    params.set('page', String(pagination.pageIndex + 1))
+  }
+
+  const sort = sorting[0]
+  const sortField = sort ? SORT_FIELD_MAP[sort.id] || sort.id : 'numero'
+  const sortDir = sort?.desc === false ? '' : '-'
+  params.set('sort', `${sortDir}${sortField}`)
+
+  const estado = columnFilters.find((f) => f.id === 'estado')?.value as string | undefined
+  if (estado) params.set('where[estado][equals]', estado)
+  const tipo = columnFilters.find((f) => f.id === 'tipo')?.value as string | undefined
+  if (tipo) params.set('where[tipo][equals]', tipo)
+  const areaId = columnFilters.find((f) => f.id === 'area_derivada')?.value as string | undefined
+  if (areaId) params.set('where[area_derivada][equals]', areaId)
+  const sla = columnFilters.find((f) => f.id === 'sla')?.value as string | undefined
+  if (sla === 'vencido') {
+    params.set('where[fechaCompromiso][less_than]', new Date().toISOString())
+    params.set('where[estado][in]', 'pendiente,en_proceso')
+  } else if (sla === 'por_vencer') {
+    const limite = new Date(Date.now() + 48 * 60 * 60 * 1000)
+    params.set('where[fechaCompromiso][greater_than_equal]', new Date().toISOString())
+    params.set('where[fechaCompromiso][less_than_equal]', limite.toISOString())
+    params.set('where[estado][in]', 'pendiente,en_proceso')
+  }
+
+  if (fechaDesde) {
+    params.set('where[createdAt][greater_than_equal]', toStartOfDayISO(fechaDesde))
+  }
+  if (fechaHasta) {
+    params.set('where[createdAt][less_than_equal]', toEndOfDayISO(fechaHasta))
+  }
+
+  if (debouncedSearch) {
+    params.set('where[or][0][descripcion][like]', debouncedSearch)
+    params.set('where[or][1][contribuyente.nombre][like]', debouncedSearch)
+    params.set('where[or][2][contribuyente.apellido][like]', debouncedSearch)
+    params.set('where[or][3][contribuyente.dni][like]', debouncedSearch)
+    const asNumber = Number(debouncedSearch)
+    if (!Number.isNaN(asNumber) && /^\d+$/.test(debouncedSearch)) {
+      params.set('where[or][4][numero][equals]', String(asNumber))
+    }
+  }
+
+  return params
+}
+
 export default function ReclamosTable() {
   const router = useRouter()
   const [data, setData] = useState<Reclamo[]>([])
@@ -97,6 +177,8 @@ export default function ReclamosTable() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [exporting, setExporting] = useState(false)
   const firstLoadDone = useRef(false)
@@ -110,7 +192,7 @@ export default function ReclamosTable() {
   // Reset to first page when filters/search/sort change
   useEffect(() => {
     setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
-  }, [columnFilters, sorting, debouncedSearch])
+  }, [columnFilters, sorting, debouncedSearch, fechaDesde, fechaHasta])
 
   // Load static data (areas + user) once
   useEffect(() => {
@@ -132,46 +214,14 @@ export default function ReclamosTable() {
     if (!firstLoadDone.current) setLoading(true)
     else setFetching(true)
 
-    const params = new URLSearchParams()
-    params.set('limit', String(pagination.pageSize))
-    params.set('page', String(pagination.pageIndex + 1))
-    params.set('depth', '1')
-
-    // Sort
-    const sort = sorting[0]
-    const sortField = sort ? SORT_FIELD_MAP[sort.id] || sort.id : 'numero'
-    const sortDir = sort?.desc === false ? '' : '-'
-    params.set('sort', `${sortDir}${sortField}`)
-
-    // Column filters
-    const estado = columnFilters.find((f) => f.id === 'estado')?.value as string | undefined
-    if (estado) params.set('where[estado][equals]', estado)
-    const tipo = columnFilters.find((f) => f.id === 'tipo')?.value as string | undefined
-    if (tipo) params.set('where[tipo][equals]', tipo)
-    const areaId = columnFilters.find((f) => f.id === 'area_derivada')?.value as string | undefined
-    if (areaId) params.set('where[area_derivada][equals]', areaId)
-    const sla = columnFilters.find((f) => f.id === 'sla')?.value as string | undefined
-    if (sla === 'vencido') {
-      params.set('where[fechaCompromiso][less_than]', new Date().toISOString())
-      params.set('where[estado][in]', 'pendiente,en_proceso')
-    } else if (sla === 'por_vencer') {
-      const limite = new Date(Date.now() + 48 * 60 * 60 * 1000)
-      params.set('where[fechaCompromiso][greater_than_equal]', new Date().toISOString())
-      params.set('where[fechaCompromiso][less_than_equal]', limite.toISOString())
-      params.set('where[estado][in]', 'pendiente,en_proceso')
-    }
-
-    // Global search: OR across descripcion, contribuyente.*, numero
-    if (debouncedSearch) {
-      params.set('where[or][0][descripcion][like]', debouncedSearch)
-      params.set('where[or][1][contribuyente.nombre][like]', debouncedSearch)
-      params.set('where[or][2][contribuyente.apellido][like]', debouncedSearch)
-      params.set('where[or][3][contribuyente.dni][like]', debouncedSearch)
-      const asNumber = Number(debouncedSearch)
-      if (!Number.isNaN(asNumber) && /^\d+$/.test(debouncedSearch)) {
-        params.set('where[or][4][numero][equals]', String(asNumber))
-      }
-    }
+    const params = buildReclamosQueryParams({
+      columnFilters,
+      debouncedSearch,
+      sorting,
+      fechaDesde,
+      fechaHasta,
+      pagination,
+    })
 
     fetch(`/api/reclamos?${params.toString()}`, {
       credentials: 'include',
@@ -201,6 +251,8 @@ export default function ReclamosTable() {
     sorting,
     columnFilters,
     debouncedSearch,
+    fechaDesde,
+    fechaHasta,
     refreshKey,
   ])
 
@@ -209,48 +261,31 @@ export default function ReclamosTable() {
   async function handleExportCSV() {
     setExporting(true)
     try {
-      const params = new URLSearchParams()
-      params.set('limit', '10000') // Export hasta 10k registros
-      params.set('depth', '1')
-
-      // Aplicar filtros actuales
-      const estado = columnFilters.find((f) => f.id === 'estado')?.value as string | undefined
-      if (estado) params.set('where[estado][equals]', estado)
-      const tipo = columnFilters.find((f) => f.id === 'tipo')?.value as string | undefined
-      if (tipo) params.set('where[tipo][equals]', tipo)
-      const areaId = columnFilters.find((f) => f.id === 'area_derivada')?.value as string | undefined
-      if (areaId) params.set('where[area_derivada][equals]', areaId)
-      const sla = columnFilters.find((f) => f.id === 'sla')?.value as string | undefined
-      if (sla === 'vencido') {
-        params.set('where[fechaCompromiso][less_than]', new Date().toISOString())
-        params.set('where[estado][in]', 'pendiente,en_proceso')
-      } else if (sla === 'por_vencer') {
-        const limite = new Date(Date.now() + 48 * 60 * 60 * 1000)
-        params.set('where[fechaCompromiso][greater_than_equal]', new Date().toISOString())
-        params.set('where[fechaCompromiso][less_than_equal]', limite.toISOString())
-        params.set('where[estado][in]', 'pendiente,en_proceso')
-      }
-      if (debouncedSearch) {
-        params.set('where[or][0][descripcion][like]', debouncedSearch)
-        params.set('where[or][1][contribuyente.nombre][like]', debouncedSearch)
-        params.set('where[or][2][contribuyente.apellido][like]', debouncedSearch)
-        params.set('where[or][3][contribuyente.dni][like]', debouncedSearch)
-        const asNumber = Number(debouncedSearch)
-        if (!Number.isNaN(asNumber) && /^\d+$/.test(debouncedSearch)) {
-          params.set('where[or][4][numero][equals]', String(asNumber))
-        }
-      }
+      const params = buildReclamosQueryParams({
+        columnFilters,
+        debouncedSearch,
+        sorting,
+        fechaDesde,
+        fechaHasta,
+        exportAll: true,
+      })
 
       const res = await fetch(`/api/reclamos?${params.toString()}`, { credentials: 'include' })
       const json = await res.json()
       const docs = json.docs || []
+      const totalDocs = json.totalDocs ?? docs.length
 
       if (docs.length === 0) {
         alert('No hay reclamos para exportar con los filtros actuales.')
         return
       }
 
-      // Generar CSV
+      if (totalDocs > docs.length) {
+        alert(
+          `Se exportaron ${docs.length} de ${totalDocs} reclamos. El resultado puede estar truncado.`,
+        )
+      }
+
       const headers = [
         'Número',
         'Tipo',
@@ -261,28 +296,41 @@ export default function ReclamosTable() {
         'Contribuyente',
         'DNI',
         'Descripción',
+        'Dirección',
+        'Barrio',
         'Fecha Creación',
         'Fecha Compromiso',
         'Fecha Resolución',
       ]
-      const rows = docs.map((r: any) => [
-        r.numero || '',
-        r.tipo || '',
-        r.estado || '',
-        r.prioridad || '',
-        typeof r.area_derivada === 'object' ? r.area_derivada.nombre : r.area_derivada || '',
-        typeof r.concepto === 'object' ? r.concepto.nombre : r.concepto || '',
-        typeof r.contribuyente === 'object'
-          ? `${r.contribuyente.nombre} ${r.contribuyente.apellido}`
-          : r.contribuyente || '',
-        typeof r.contribuyente === 'object' ? r.contribuyente.dni || '' : '',
-        r.descripcion || '',
-        r.createdAt ? new Date(r.createdAt).toLocaleDateString('es-AR') : '',
-        r.fechaCompromiso ? new Date(r.fechaCompromiso).toLocaleDateString('es-AR') : '',
-        r.fechaResolucion ? new Date(r.fechaResolucion).toLocaleDateString('es-AR') : '',
-      ])
+      const rows = docs.map((r: Record<string, unknown>) => {
+        const areaDerivada = r.area_derivada as Area | string | undefined
+        const concepto = r.concepto as { nombre?: string } | string | undefined
+        const contribuyente = r.contribuyente as Contribuyente | string | undefined
+        const ubicacion = r.ubicacion as { direccionIngresada?: string; barrio?: string } | undefined
 
-      const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n')
+        return [
+          r.numero ?? '',
+          r.tipo ?? '',
+          r.estado ?? '',
+          r.prioridad ?? '',
+          typeof areaDerivada === 'object' && areaDerivada ? areaDerivada.nombre : areaDerivada ?? '',
+          typeof concepto === 'object' && concepto ? concepto.nombre : concepto ?? '',
+          typeof contribuyente === 'object' && contribuyente
+            ? `${contribuyente.nombre} ${contribuyente.apellido}`
+            : contribuyente ?? '',
+          typeof contribuyente === 'object' && contribuyente ? contribuyente.dni ?? '' : '',
+          r.descripcion ?? '',
+          ubicacion?.direccionIngresada ?? '',
+          ubicacion?.barrio ?? '',
+          r.createdAt ? new Date(r.createdAt as string).toLocaleDateString('es-AR') : '',
+          r.fechaCompromiso ? new Date(r.fechaCompromiso as string).toLocaleDateString('es-AR') : '',
+          r.fechaResolucion ? new Date(r.fechaResolucion as string).toLocaleDateString('es-AR') : '',
+        ]
+      })
+
+      const csvContent = [headers, ...rows]
+        .map((row) => row.map(escapeCsvCell).join(','))
+        .join('\n')
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -413,7 +461,7 @@ export default function ReclamosTable() {
             {totalDocs !== 1 ? 's' : ''}
           </p>
         </div>
-        {userRole !== 'visualizador' && (
+        {(userRole === 'admin' || userRole === 'carga') && (
           <button
             id="btn-nuevo-reclamo"
             className="dash-action-btn dash-action-btn--primary"
@@ -439,10 +487,30 @@ export default function ReclamosTable() {
           />
         </div>
 
-        <div className="reclamos-filters">
-          <div className="reclamos-filter-group">
-            <IconFilter size={16} />
-            <select
+        <div className="reclamos-toolbar-actions">
+          <button
+            className="reclamos-refresh-btn"
+            onClick={handleExportCSV}
+            title="Exportar CSV (todos los resultados filtrados)"
+            disabled={exporting}
+          >
+            {exporting ? (
+              <span className="loading loading-spinner loading-xs" />
+            ) : (
+              <IconDownload size={18} />
+            )}
+          </button>
+
+          <button className="reclamos-refresh-btn" onClick={fetchData} title="Actualizar">
+            <IconRefresh size={18} className={fetching || loading ? 'spin-animation' : ''} />
+          </button>
+        </div>
+      </div>
+
+      <div className="reclamos-filters">
+        <div className="reclamos-filter-group">
+          <IconFilter size={16} />
+          <select
               id="filter-estado"
               className="reclamos-filter-select"
               value={(columnFilters.find((f) => f.id === 'estado')?.value as string) || ''}
@@ -524,23 +592,26 @@ export default function ReclamosTable() {
             </select>
           </div>
 
-          <button
-            className="reclamos-refresh-btn"
-            onClick={handleExportCSV}
-            title="Exportar CSV"
-            disabled={exporting}
-          >
-            {exporting ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : (
-              <IconDownload size={18} />
-            )}
-          </button>
+          <input
+            id="filter-fecha-desde"
+            type="date"
+            className="reclamos-filter-select"
+            value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
+            title="Fecha desde"
+            aria-label="Fecha desde"
+          />
 
-          <button className="reclamos-refresh-btn" onClick={fetchData} title="Actualizar">
-            <IconRefresh size={18} className={fetching || loading ? 'spin-animation' : ''} />
-          </button>
-        </div>
+          <input
+            id="filter-fecha-hasta"
+            type="date"
+            className="reclamos-filter-select"
+            value={fechaHasta}
+            min={fechaDesde || undefined}
+            onChange={(e) => setFechaHasta(e.target.value)}
+            title="Fecha hasta"
+            aria-label="Fecha hasta"
+          />
       </div>
 
       {/* Table */}
