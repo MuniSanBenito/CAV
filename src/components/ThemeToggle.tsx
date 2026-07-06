@@ -1,41 +1,27 @@
 'use client'
 
+import { useTheme } from '@/hooks/useTheme'
 import { IconMoon, IconSun } from '@tabler/icons-react'
-import { useEffect, useState } from 'react'
 
-export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+type ThemeToggleProps = {
+  variant?: 'fixed' | 'inline'
+  className?: string
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem('cav-theme') as 'light' | 'dark' | null
-    if (saved === 'dark') {
-      setTheme('dark')
-      document.documentElement.setAttribute('data-theme', 'dark')
-    }
-  }, [])
+export default function ThemeToggle({ variant = 'fixed', className }: ThemeToggleProps) {
+  const { theme, toggleTheme } = useTheme()
 
-  function toggle() {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
-    localStorage.setItem('cav-theme', next)
-    if (next === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    } else {
-      document.documentElement.removeAttribute('data-theme')
-    }
-  }
+  const buttonClass =
+    className ?? (variant === 'fixed' ? 'theme-toggle-btn' : 'mis-reclamos-theme-btn')
 
   return (
     <button
-      className="theme-toggle-btn"
-      onClick={toggle}
+      className={buttonClass}
+      onClick={toggleTheme}
       title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      type="button"
     >
-      {theme === 'dark' ? (
-        <IconSun size={18} stroke={1.6} />
-      ) : (
-        <IconMoon size={18} stroke={1.6} />
-      )}
+      {theme === 'dark' ? <IconSun size={18} stroke={1.6} /> : <IconMoon size={18} stroke={1.6} />}
     </button>
   )
 }

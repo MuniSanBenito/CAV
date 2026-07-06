@@ -1,8 +1,10 @@
 'use client'
 
+import { useTheme } from '@/hooks/useTheme'
 import { roleLabels } from '@/lib/constants'
 import {
   IconBuilding,
+  IconChartBar,
   IconChevronRight,
   IconFileDescription,
   IconLayoutDashboard,
@@ -12,7 +14,6 @@ import {
   IconMoon,
   IconSun,
   IconX,
-  IconChartBar,
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -39,26 +40,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [user, setUser] = useState<DashboardUser | null>(null)
   const [authChecking, setAuthChecking] = useState(true)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
-
-  useEffect(() => {
-    const saved = localStorage.getItem('cav-theme') as 'light' | 'dark' | null
-    if (saved === 'dark') {
-      setTheme('dark')
-      document.documentElement.setAttribute('data-theme', 'dark')
-    }
-  }, [])
-
-  function toggleTheme() {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
-    localStorage.setItem('cav-theme', next)
-    if (next === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    } else {
-      document.documentElement.removeAttribute('data-theme')
-    }
-  }
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     fetch('/api/users/me', { credentials: 'include' })
@@ -120,20 +102,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         <nav className="dash-sidebar-nav">
           {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`dash-nav-link ${isActive ? 'dash-nav-link--active' : ''}`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon size={20} stroke={1.6} />
-                  <span>{item.label}</span>
-                  {isActive && <IconChevronRight size={16} className="dash-nav-link-arrow" />}
-                </Link>
-              )
-            })}
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`dash-nav-link ${isActive ? 'dash-nav-link--active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <item.icon size={20} stroke={1.6} />
+                <span>{item.label}</span>
+                {isActive && <IconChevronRight size={16} className="dash-nav-link-arrow" />}
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="dash-sidebar-footer">
@@ -150,8 +132,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </div>
           </div>
           <div className="dash-theme-row">
-            <button className="dash-theme-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Cambiar a claro' : 'Cambiar a oscuro'}>
-              {theme === 'dark' ? <IconSun size={16} stroke={1.6} /> : <IconMoon size={16} stroke={1.6} />}
+            <button
+              className="dash-theme-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Cambiar a claro' : 'Cambiar a oscuro'}
+            >
+              {theme === 'dark' ? (
+                <IconSun size={16} stroke={1.6} />
+              ) : (
+                <IconMoon size={16} stroke={1.6} />
+              )}
               <span>{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span>
             </button>
           </div>

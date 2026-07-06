@@ -1,5 +1,7 @@
 'use client'
 
+import { compressImage } from '@/components/FotoUploader'
+import ThemeToggle from '@/components/ThemeToggle'
 import { cardGlowClass, estadoBadgeClass, estadoLabel } from '@/lib/constants'
 import {
   IconAlertTriangle,
@@ -18,7 +20,6 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
-import { compressImage } from '@/components/FotoUploader'
 
 interface User {
   id: string
@@ -236,7 +237,9 @@ export default function MisReclamosClient() {
         closeResolution()
       } else if (patchRes.status === 403) {
         const errData = await patchRes.json().catch(() => null)
-        alert(errData?.errors?.[0]?.message || 'Este reclamo ya está cerrado y no puede modificarse.')
+        alert(
+          errData?.errors?.[0]?.message || 'Este reclamo ya está cerrado y no puede modificarse.',
+        )
         await fetchUserAndReclamos()
         closeResolution()
       } else {
@@ -284,6 +287,10 @@ export default function MisReclamosClient() {
   if (error) {
     return (
       <div className="mis-reclamos-error-screen">
+        <ThemeToggle
+          variant="inline"
+          className="mis-reclamos-theme-btn mis-reclamos-theme-btn--floating"
+        />
         <IconAlertTriangle size={56} color="#ff6b6b" strokeWidth={1.5} />
         <h2 className="mis-reclamos-error-title">{error}</h2>
         {user?.role !== 'ejecutor' ? (
@@ -343,6 +350,7 @@ export default function MisReclamosClient() {
             </button>
           )}
           <h1 className="mis-reclamos-title">Mis Tareas</h1>
+          <ThemeToggle variant="inline" />
         </div>
 
         <div className="mis-reclamos-toolbar">
