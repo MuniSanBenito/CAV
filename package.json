@@ -14,10 +14,11 @@
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "seed": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" tsx src/seed/seedReclamos.ts",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
-    "test": "pnpm run test:int && pnpm run test:e2e",
+    "test": "bun run test:int && bun run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
-    "update": "npx npm-check-updates -i"
+    "skills": "npx skills@latest update -p",
+    "ncu": "npx npm-check-updates@latest -i"
   },
   "dependencies": {
     "@payloadcms/db-mongodb": "3.85.1",
@@ -30,7 +31,7 @@
     "@tailwindcss/postcss": "4.3.1",
     "@tanstack/react-table": "8.21.3",
     "@types/leaflet": "1.9.21",
-    "bson": "^6.10.3",
+    "bson": "6.10.3",
     "cross-env": "10.1.0",
     "daisyui": "5.5.23",
     "dotenv": "17.4.2",
@@ -61,16 +62,9 @@
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.9"
   },
-  "engines": {
-    "node": "18.20.2 || >=20.9.0",
-    "pnpm": "9 || 10"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "esbuild",
-      "unrs-resolver"
-    ]
-  },
-  "packageManager": "pnpm@10.33.4+sha512.1c67b3b359b2d408119ba1ed289f34b8fc3c6873412bec6fd264fbdc82489e510fcbecb9ce9d22dae7f3b76269d8441046014bdca53b9979cd7a561ad631b800"
+  "trustedDependencies": [
+    "sharp",
+    "esbuild",
+    "unrs-resolver"
+  ]
 }

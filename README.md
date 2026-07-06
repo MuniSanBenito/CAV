@@ -44,53 +44,58 @@ Las funciones de control de acceso están centralizadas en `src/access/roles.ts`
 
 ```bash
 # Desarrollo
-pnpm dev              # Iniciar servidor de desarrollo
-pnpm devsafe          # Limpiar .next y iniciar dev server
+bun dev              # Iniciar servidor de desarrollo
+bun devsafe          # Limpiar .next y iniciar dev server
 
 # Build
-pnpm build            # Build de producción
-pnpm start            # Iniciar servidor de producción
+bun build            # Build de producción
+bun start            # Iniciar servidor de producción
 
 # Payload
-pnpm generate:types   # Generar tipos TypeScript después de cambios en schema
-pnpm generate:importmap # Generar import map para componentes
-pnpm payload          # CLI de Payload
+bun generate:types   # Generar tipos TypeScript después de cambios en schema
+bun generate:importmap # Generar import map para componentes
+bun payload          # CLI de Payload
 
 # Tests
-pnpm test             # Ejecutar todos los tests
-pnpm test:int         # Tests de integración (Vitest)
-pnpm test:e2e         # Tests E2E (Playwright)
+bun test             # Ejecutar todos los tests
+bun test:int         # Tests de integración (Vitest)
+bun test:e2e         # Tests E2E (Playwright)
 
 # Utilidades
-pnpm lint             # Linting con ESLint
-pnpm seed             # Seed de datos de prueba
-pnpm update           # Actualizar dependencias
+bun lint             # Linting con ESLint
+bun seed             # Seed de datos de prueba
+bun update           # Actualizar dependencias
 ```
 
 ## 📋 Requisitos Previos
 
 - **Node.js**: 18.20.2 o >=20.9.0
-- **pnpm**: 9 o 10
+- **bun**: 9 o 10
 - **MongoDB**: Instancia local o en la nube
 
 ## 🚀 Instalación y Configuración
 
 1. **Clonar el repositorio**
+
    ```bash
    git clone <repo-url>
    cd CAV
    ```
 
 2. **Instalar dependencias**
+
    ```bash
-   pnpm install
+   bun install
    ```
 
 3. **Configurar variables de entorno**
+
    ```bash
    cp .env.example .env
    ```
+
    Editar `.env` con tus credenciales:
+
    ```
    DATABASE_URL=mongodb://localhost:27017/cav-san-benito
    PAYLOAD_SECRET=tu-secret-key-aqui
@@ -98,8 +103,9 @@ pnpm update           # Actualizar dependencias
    ```
 
 4. **Iniciar servidor de desarrollo**
+
    ```bash
-   pnpm dev
+   bun dev
    ```
 
 5. **Abrir en el navegador**
@@ -112,6 +118,7 @@ pnpm update           # Actualizar dependencias
 Si prefieres usar Docker para la base de datos local:
 
 1. Configurar `MONGODB_URL` en `.env`:
+
    ```
    MONGODB_URL=mongodb://127.0.0.1/cav-san-benito
    ```
@@ -153,7 +160,7 @@ src/
 Si modificas el schema de cualquier colección, regenera los tipos:
 
 ```bash
-pnpm generate:types
+bun generate:types
 ```
 
 ### Crear componentes personalizados
@@ -161,7 +168,7 @@ pnpm generate:types
 Los componentes del panel de Payload se definen usando rutas de archivo en `payload.config.ts`. Después de crear/modificar componentes:
 
 ```bash
-pnpm generate:importmap
+bun generate:importmap
 ```
 
 ### Validar TypeScript
@@ -174,20 +181,20 @@ tsc --noEmit
 
 ```bash
 # Tests de integración
-pnpm test:int
+bun test:int
 
 # Tests E2E
-pnpm test:e2e
+bun test:e2e
 
 # Todos los tests
-pnpm test
+bun test
 ```
 
 ## 📦 Build para Producción
 
 ```bash
-pnpm build
-pnpm start
+bun build
+bun start
 ```
 
 ## 🔒 Seguridad
@@ -200,6 +207,7 @@ pnpm start
 ## 📞 Soporte
 
 Para preguntas sobre Payload CMS:
+
 - [Discord oficial](https://discord.com/invite/payload)
 - [GitHub Discussions](https://github.com/payloadcms/payload/discussions)
 - [Documentación oficial](https://payloadcms.com/docs)

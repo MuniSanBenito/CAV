@@ -1,27 +1,28 @@
 'use client'
 
-import React, { useEffect, useState, FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
 import {
+  estadoBadgeClass,
+  estadoLabel,
+  getSlaStatus,
+  prioridadLabel,
+  slaBadgeClass,
+  slaLabel,
+} from '@/lib/constants'
+import { getMediaUrl } from '@/lib/media'
+import {
+  IconAlertCircle,
   IconArrowLeft,
+  IconCircleCheck,
   IconClock,
-  IconUser,
+  IconHistory,
   IconMapPin,
   IconNotes,
-  IconCircleCheck,
   IconSend,
-  IconAlertCircle,
-  IconHistory,
+  IconUser,
 } from '@tabler/icons-react'
-import {
-  estadoLabel,
-  estadoBadgeClass,
-  prioridadLabel,
-  getSlaStatus,
-  slaLabel,
-  slaBadgeClass,
-} from '@/lib/constants'
-import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
+import { useRouter } from 'next/navigation'
+import { FormEvent, useEffect, useState } from 'react'
 
 // estadoLabel, estadoBadgeClass, prioridadLabel imported from @/lib/constants
 const estadoBadge = estadoBadgeClass
@@ -314,21 +315,27 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                 <span>Fotos Adjuntas</span>
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                {reclamo.fotos.map((foto: any) => (
-                  <a key={foto.id} href={foto.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={foto.url}
-                      alt="Archivo adjunto"
-                      style={{
-                        width: '120px',
-                        height: '120px',
-                        objectFit: 'cover',
-                        borderRadius: 'var(--border-radius-s)',
-                        border: '1px solid var(--theme-border)',
-                      }}
-                    />
-                  </a>
-                ))}
+                {reclamo.fotos.map((foto: any) => {
+                  const thumb = getMediaUrl(foto, 'thumbnail')
+                  const full = getMediaUrl(foto, 'full')
+                  if (!thumb || !full) return null
+                  return (
+                    <a key={foto.id} href={full} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={thumb}
+                        alt="Archivo adjunto"
+                        loading="lazy"
+                        style={{
+                          width: '120px',
+                          height: '120px',
+                          objectFit: 'cover',
+                          borderRadius: 'var(--border-radius-s)',
+                          border: '1px solid var(--theme-border)',
+                        }}
+                      />
+                    </a>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -392,17 +399,17 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                           marginTop: '0.5rem',
                         }}
                       >
-                        {mov.adjuntos.map((adj: any) =>
-                          typeof adj === 'object' && adj?.url ? (
-                            <a
-                              key={adj.id}
-                              href={adj.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
+                        {mov.adjuntos.map((adj: any) => {
+                          if (typeof adj !== 'object') return null
+                          const thumb = getMediaUrl(adj, 'thumbnail')
+                          const full = getMediaUrl(adj, 'full')
+                          if (!thumb || !full) return null
+                          return (
+                            <a key={adj.id} href={full} target="_blank" rel="noopener noreferrer">
                               <img
-                                src={adj.url}
+                                src={thumb}
                                 alt={adj.alt || 'Adjunto del movimiento'}
+                                loading="lazy"
                                 style={{
                                   width: '64px',
                                   height: '64px',
@@ -412,8 +419,8 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
                                 }}
                               />
                             </a>
-                          ) : null,
-                        )}
+                          )
+                        })}
                       </div>
                     )}
                     {mov.usuario && (

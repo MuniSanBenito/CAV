@@ -10,29 +10,32 @@ A structured repository for creating and maintaining React Best Practices optimi
   - `area-description.md` - Individual rule files
 - `src/` - Build scripts and utilities
 - `metadata.json` - Document metadata (version, organization, abstract)
-- __`AGENTS.md`__ - Compiled output (generated)
-- __`test-cases.json`__ - Test cases for LLM evaluation (generated)
+- **`AGENTS.md`** - Compiled output (generated)
+- **`test-cases.json`** - Test cases for LLM evaluation (generated)
 
 ## Getting Started
 
 1. Install dependencies:
+
    ```bash
-   pnpm install
+   bun install
    ```
 
 2. Build AGENTS.md from rules:
+
    ```bash
-   pnpm build
+   bun build
    ```
 
 3. Validate rule files:
+
    ```bash
-   pnpm validate
+   bun validate
    ```
 
 4. Extract test cases:
    ```bash
-   pnpm extract-tests
+   bun extract-tests
    ```
 
 ## Creating a New Rule
@@ -49,13 +52,13 @@ A structured repository for creating and maintaining React Best Practices optimi
    - `advanced-` for Advanced Patterns (Section 8)
 3. Fill in the frontmatter and content
 4. Ensure you have clear examples with explanations
-5. Run `pnpm build` to regenerate AGENTS.md and test-cases.json
+5. Run `bun build` to regenerate AGENTS.md and test-cases.json
 
 ## Rule File Structure
 
 Each rule file should follow this structure:
 
-```markdown
+````markdown
 ---
 title: Rule Title Here
 impact: MEDIUM
@@ -72,6 +75,7 @@ Brief explanation of the rule and why it matters.
 ```typescript
 // Bad code example
 ```
+````
 
 **Correct (description of what's right):**
 
@@ -102,10 +106,10 @@ Reference: [Link](https://example.com)
 
 ## Scripts
 
-- `pnpm build` - Compile rules into AGENTS.md
-- `pnpm validate` - Validate all rule files
-- `pnpm extract-tests` - Extract test cases for LLM evaluation
-- `pnpm dev` - Build and validate
+- `bun build` - Compile rules into AGENTS.md
+- `bun validate` - Validate all rule files
+- `bun extract-tests` - Extract test cases for LLM evaluation
+- `bun dev` - Build and validate
 
 ## Contributing
 
@@ -115,7 +119,7 @@ When adding or modifying rules:
 2. Follow the `_template.md` structure
 3. Include clear bad/good examples with explanations
 4. Add appropriate tags
-5. Run `pnpm build` to regenerate AGENTS.md and test-cases.json
+5. Run `bun build` to regenerate AGENTS.md and test-cases.json
 6. Rules are automatically sorted by title - no need to manage numbers!
 
 ## Acknowledgments
