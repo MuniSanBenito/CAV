@@ -11,6 +11,7 @@ import {
   IconCircleCheck,
   IconClock,
   IconList,
+  IconLogout,
   IconMap,
   IconMapPin,
   IconPlus,
@@ -384,7 +385,7 @@ export default function MisReclamosClient() {
                 router.replace('/login')
               }}
             >
-              <IconArrowLeft size={20} />
+              <IconLogout size={20} />
             </button>
           )}
           <h1 className="mis-reclamos-title">Mis Tareas</h1>
