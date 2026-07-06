@@ -2,7 +2,7 @@
 
 import { compressImage } from '@/components/FotoUploader'
 import ThemeToggle from '@/components/ThemeToggle'
-import { cardGlowClass, estadoBadgeClass, estadoLabel } from '@/lib/constants'
+import { getContribuyenteNombre, getReclamoCoords } from '@/lib/reclamo-utils'
 import {
   IconAlertTriangle,
   IconArrowLeft,
@@ -10,16 +10,23 @@ import {
   IconCheck,
   IconCircleCheck,
   IconClock,
-  IconLocation,
+  IconList,
+  IconMap,
   IconMapPin,
   IconPlus,
   IconSearch,
   IconSend,
   IconX,
 } from '@tabler/icons-react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
+import MisReclamoCard from './MisReclamoCard'
+import MisReclamoDetailDrawer from './MisReclamoDetailDrawer'
+import type { ReclamoEjecutor } from './types'
+
+const MisReclamosMap = dynamic(() => import('./MisReclamosMap'), { ssr: false })
 
 interface User {
   id: string
@@ -34,42 +41,31 @@ interface Coordenadas {
   lng: number
 }
 
-interface Reclamo {
-  id: string
-  numero: number
-  tipo: string
-  estado: string
-  prioridad: string
-  calle: string
-  descripcion: string
-  createdAt: string
-  coordenadas?: Coordenadas
-  movimientos?: any[]
-  fotos?: any[]
-}
-
-// estadoLabel, estadoBadgeClass, cardGlowClass imported from @/lib/constants
-
-const TERMINAL_ESTADOS = ['resuelto', 'rechazado']
-
-function isTerminalEstado(estado: string) {
-  return TERMINAL_ESTADOS.includes(estado)
-}
+type ViewMode = 'list' | 'map'
 
 export default function MisReclamosClient() {
   const router = useRouter()
 
   const [user, setUser] = useState<User | null>(null)
-  const [reclamos, setReclamos] = useState<Reclamo[]>([])
+  const [reclamos, setReclamos] = useState<ReclamoEjecutor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Filtros
   const [searchTerm, setSearchTerm] = useState('')
   const [userCoords, setUserCoords] = useState<Coordenadas | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [isDesktop, setIsDesktop] = useState(false)
 
-  // Resolución Modal
-  const [selectedReclamo, setSelectedReclamo] = useState<Reclamo | null>(null)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  const [detailReclamo, setDetailReclamo] = useState<ReclamoEjecutor | null>(null)
+  const [selectedReclamo, setSelectedReclamo] = useState<ReclamoEjecutor | null>(null)
   const [resolving, setResolving] = useState(false)
   const [formEstado, setFormEstado] = useState('resuelto')
   const [formNota, setFormNota] = useState('')
@@ -111,7 +107,7 @@ export default function MisReclamosClient() {
         .join(',')
 
       const reclamosRes = await fetch(
-        `/api/reclamos?where[area_derivada][in]=${areaIds}&sort=createdAt&limit=0`,
+        `/api/reclamos?where[area_derivada][in]=${areaIds}&sort=createdAt&limit=0&depth=2`,
         { credentials: 'include' },
       )
       const reclamosData = await reclamosRes.json()
@@ -162,12 +158,20 @@ export default function MisReclamosClient() {
     }
   }
 
-  const openResolution = (reclamo: Reclamo) => {
+  const openDetail = (reclamo: ReclamoEjecutor) => setDetailReclamo(reclamo)
+  const closeDetail = () => setDetailReclamo(null)
+
+  const openResolution = (reclamo: ReclamoEjecutor) => {
     setSelectedReclamo(reclamo)
     setFormEstado('resuelto')
     setFormNota('')
     setFormFoto(null)
     setFormCoords(null)
+  }
+
+  const openResolutionFromDetail = (reclamo: ReclamoEjecutor) => {
+    closeDetail()
+    openResolution(reclamo)
   }
 
   const closeResolution = () => setSelectedReclamo(null)
@@ -205,7 +209,7 @@ export default function MisReclamosClient() {
       }
 
       const fotosCargadas = selectedReclamo.fotos
-        ? selectedReclamo.fotos.map((f: any) => f.id || f)
+        ? selectedReclamo.fotos.map((f) => (typeof f === 'object' ? f.id : f))
         : []
       if (fotoId) fotosCargadas.push(fotoId)
 
@@ -253,28 +257,69 @@ export default function MisReclamosClient() {
     }
   }
 
-  // Filter & sort
   let displayedReclamos = [...reclamos]
   if (searchTerm) {
     const term = searchTerm.toLowerCase()
-    displayedReclamos = displayedReclamos.filter(
-      (r) =>
+    displayedReclamos = displayedReclamos.filter((r) => {
+      const contribNombre = getContribuyenteNombre(r.contribuyente)?.toLowerCase() || ''
+      return (
         (r.calle || '').toLowerCase().includes(term) ||
+        (r.ubicacion?.barrio || '').toLowerCase().includes(term) ||
         r.numero.toString().includes(term) ||
-        (r.descripcion || '').toLowerCase().includes(term),
-    )
+        (r.descripcion || '').toLowerCase().includes(term) ||
+        contribNombre.includes(term)
+      )
+    })
   }
   if (userCoords) {
     displayedReclamos.sort((a, b) => {
-      if (!a.coordenadas?.lat || !b.coordenadas?.lat) return 0
+      const coordsA = getReclamoCoords(a)
+      const coordsB = getReclamoCoords(b)
+      if (!coordsA) return 1
+      if (!coordsB) return -1
       return (
-        getDistanceKm(userCoords.lat, userCoords.lng, a.coordenadas.lat, a.coordenadas.lng) -
-        getDistanceKm(userCoords.lat, userCoords.lng, b.coordenadas.lat, b.coordenadas.lng)
+        getDistanceKm(userCoords.lat, userCoords.lng, coordsA.lat, coordsA.lng) -
+        getDistanceKm(userCoords.lat, userCoords.lng, coordsB.lat, coordsB.lng)
       )
     })
   }
 
-  // ── Loading ──
+  const listPanel = (
+    <div className="mis-reclamos-list">
+      <p className="mis-reclamos-count">
+        {displayedReclamos.length} {displayedReclamos.length === 1 ? 'actividad' : 'actividades'}
+        {userCoords && ' · Por cercanía'}
+      </p>
+
+      {displayedReclamos.length === 0 ? (
+        <div className="mis-reclamos-empty">
+          <IconCircleCheck size={56} strokeWidth={1.2} />
+          <span>Todo al día</span>
+        </div>
+      ) : (
+        <div className="mis-reclamos-cards">
+          {displayedReclamos.map((reclamo) => (
+            <MisReclamoCard
+              key={reclamo.id}
+              reclamo={reclamo}
+              onOpenDetail={openDetail}
+              onActuar={openResolution}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const mapPanel = (
+    <MisReclamosMap
+      reclamos={displayedReclamos}
+      selectedReclamo={detailReclamo}
+      isVisible={isDesktop || viewMode === 'map'}
+      onMarkerClick={openDetail}
+    />
+  )
+
   if (loading) {
     return (
       <div className="mis-reclamos-loading">
@@ -283,7 +328,6 @@ export default function MisReclamosClient() {
     )
   }
 
-  // ── Error ──
   if (error) {
     return (
       <div className="mis-reclamos-error-screen">
@@ -307,9 +351,7 @@ export default function MisReclamosClient() {
               await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
               })
               router.replace('/login')
             }}
@@ -321,10 +363,8 @@ export default function MisReclamosClient() {
     )
   }
 
-  // ── Main ──
   return (
     <div className="mis-reclamos-layout">
-      {/* HEADER */}
       <div className="mis-reclamos-header">
         <div className="mis-reclamos-toprow">
           {user?.role !== 'ejecutor' ? (
@@ -339,9 +379,7 @@ export default function MisReclamosClient() {
                 await fetch('/api/auth/logout', {
                   method: 'POST',
                   credentials: 'include',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
+                  headers: { 'Content-Type': 'application/json' },
                 })
                 router.replace('/login')
               }}
@@ -368,6 +406,7 @@ export default function MisReclamosClient() {
             className={`mis-reclamos-icon-btn${userCoords ? ' mis-reclamos-icon-btn--active' : ''}`}
             onClick={handleSortByProximity}
             title="Ordenar por cercanía"
+            type="button"
           >
             <IconMapPin size={20} />
           </button>
@@ -379,62 +418,52 @@ export default function MisReclamosClient() {
             <IconPlus size={20} />
           </Link>
         </div>
+
+        <div className="mis-reclamos-view-tabs" role="tablist" aria-label="Vista de tareas">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'list'}
+            className={`mis-reclamos-view-tab${viewMode === 'list' ? ' mis-reclamos-view-tab--active' : ''}`}
+            onClick={() => setViewMode('list')}
+          >
+            <IconList size={16} />
+            Lista
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'map'}
+            className={`mis-reclamos-view-tab${viewMode === 'map' ? ' mis-reclamos-view-tab--active' : ''}`}
+            onClick={() => setViewMode('map')}
+          >
+            <IconMap size={16} />
+            Mapa
+          </button>
+        </div>
       </div>
 
-      {/* LIST */}
-      <div className="mis-reclamos-list">
-        <p className="mis-reclamos-count">
-          {displayedReclamos.length} {displayedReclamos.length === 1 ? 'actividad' : 'actividades'}
-          {userCoords && ' · Por cercanía'}
-        </p>
-
-        {displayedReclamos.length === 0 ? (
-          <div className="mis-reclamos-empty">
-            <IconCircleCheck size={56} strokeWidth={1.2} />
-            <span>Todo al día</span>
-          </div>
-        ) : (
-          <div className="mis-reclamos-cards">
-            {displayedReclamos.map((reclamo) => (
-              <div key={reclamo.id} className="mis-reclamo-card">
-                {/* Subtle glow based on state */}
-                {cardGlowClass[reclamo.estado] && <div className={cardGlowClass[reclamo.estado]} />}
-
-                <div className="mis-reclamo-card-body">
-                  <div className="mis-reclamo-card-toprow">
-                    <span className="mis-reclamo-card-numero">#{reclamo.numero}</span>
-                    <span className={`dash-badge ${estadoBadgeClass[reclamo.estado] || ''}`}>
-                      {estadoLabel[reclamo.estado] || reclamo.estado}
-                    </span>
-                  </div>
-
-                  <div className="mis-reclamo-card-tipo">{reclamo.tipo}</div>
-
-                  <div className="mis-reclamo-card-address">
-                    <IconLocation size={14} className="mis-reclamo-card-address-icon" />
-                    <span>{reclamo.calle || 'Sin dirección específica'}</span>
-                  </div>
-
-                  {reclamo.descripcion && (
-                    <p className="mis-reclamo-card-desc">{reclamo.descripcion}</p>
-                  )}
-
-                  {!isTerminalEstado(reclamo.estado) && (
-                    <button
-                      className="mis-reclamo-card-action-btn"
-                      onClick={() => openResolution(reclamo)}
-                    >
-                      Actuar <IconArrowLeft size={15} style={{ transform: 'rotate(180deg)' }} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="mis-reclamos-split">
+        <div
+          className={`mis-reclamos-split-list${viewMode === 'map' ? ' mis-reclamos-split-list--hidden-mobile' : ''}`}
+        >
+          {listPanel}
+        </div>
+        <div
+          className={`mis-reclamos-split-map${viewMode === 'list' ? ' mis-reclamos-split-map--hidden-mobile' : ''}${detailReclamo || selectedReclamo ? ' mis-reclamos-split-map--behind-drawer' : ''}`}
+        >
+          {mapPanel}
+        </div>
       </div>
 
-      {/* RESOLUTION DRAWER */}
+      {detailReclamo && (
+        <MisReclamoDetailDrawer
+          reclamo={detailReclamo}
+          onClose={closeDetail}
+          onActuar={openResolutionFromDetail}
+        />
+      )}
+
       {selectedReclamo && (
         <div className="mis-reclamos-drawer-overlay">
           <div className="mis-reclamos-drawer-backdrop" onClick={closeResolution} />
@@ -444,13 +473,12 @@ export default function MisReclamosClient() {
 
             <div className="mis-reclamos-drawer-header">
               <h2 className="mis-reclamos-drawer-title">Ticket #{selectedReclamo.numero}</h2>
-              <button className="mis-reclamos-drawer-close" onClick={closeResolution}>
+              <button className="mis-reclamos-drawer-close" onClick={closeResolution} type="button">
                 <IconX size={18} />
               </button>
             </div>
 
             <div className="mis-reclamos-drawer-body">
-              {/* Estado */}
               <div>
                 <div className="mis-reclamos-drawer-section-label">Acción</div>
                 <div className="mis-reclamos-estado-options">
@@ -508,7 +536,6 @@ export default function MisReclamosClient() {
                 </div>
               </div>
 
-              {/* Evidencia */}
               <div>
                 <div className="mis-reclamos-drawer-section-label">Evidencia</div>
                 <input
@@ -522,6 +549,7 @@ export default function MisReclamosClient() {
                 />
                 <div className="mis-reclamos-evidence-grid">
                   <button
+                    type="button"
                     className={`mis-reclamos-evidence-btn${formFoto ? ' mis-reclamos-evidence-btn--active' : ''}`}
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -529,6 +557,7 @@ export default function MisReclamosClient() {
                     <span>{formFoto ? 'Foto cargada' : 'Tomar foto'}</span>
                   </button>
                   <button
+                    type="button"
                     className={`mis-reclamos-evidence-btn${formCoords ? ' mis-reclamos-evidence-btn--active' : ''}`}
                     onClick={captureResolutionLocation}
                   >
@@ -538,7 +567,6 @@ export default function MisReclamosClient() {
                 </div>
               </div>
 
-              {/* Nota */}
               <div style={{ paddingBottom: '8px' }}>
                 <div className="mis-reclamos-nota-label">
                   <span>Nota Final</span>
@@ -557,6 +585,7 @@ export default function MisReclamosClient() {
 
             <div className="mis-reclamos-drawer-footer">
               <button
+                type="button"
                 className="mis-reclamos-submit-btn"
                 onClick={submitResolution}
                 disabled={resolving || (formEstado !== 'resuelto' && formNota.trim() === '')}

@@ -43,15 +43,27 @@ export const tipoBadgeClass: Record<string, string> = {
   consulta: 'dash-badge--low',
 }
 
+export const medioLabel: Record<string, string> = {
+  presencial: 'Presencial',
+  whatsapp: 'WhatsApp',
+  correo: 'Correo',
+  calle: 'Calle',
+  otro: 'Otro',
+}
+
+export const ESTADO_MAP_COLORS: Record<string, string> = {
+  pendiente: '#f59e0b',
+  en_proceso: '#3b82f6',
+  resuelto: '#22c55e',
+  rechazado: '#ef4444',
+}
+
 // SLA: estado de cumplimiento según fechaCompromiso
 export type SlaStatus = 'vencido' | 'por_vencer' | 'en_plazo' | null
 
 const POR_VENCER_MS = 48 * 60 * 60 * 1000 // 48hs antes del vencimiento
 
-export function getSlaStatus(
-  fechaCompromiso?: string | null,
-  estado?: string | null,
-): SlaStatus {
+export function getSlaStatus(fechaCompromiso?: string | null, estado?: string | null): SlaStatus {
   if (!fechaCompromiso) return null
   if (estado === 'resuelto' || estado === 'rechazado') return null
   const due = new Date(fechaCompromiso).getTime()
