@@ -2,6 +2,7 @@
 
 import AddressSearch from '@/components/AddressSearch'
 import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
+import type { Contribuyente } from '@/mi-sanbenito/types'
 import {
   IconAlertCircle,
   IconArrowLeft,
@@ -31,16 +32,6 @@ interface Concepto {
   id: string
   nombre: string
   area: { id: string; nombre: string } | string
-}
-
-interface Contribuyente {
-  id: string
-  nombre: string
-  apellido: string
-  dni: string
-  telefono?: string
-  email?: string
-  direccion?: string
 }
 
 interface Coords {
@@ -240,7 +231,15 @@ export default function NuevoReclamoForm({
       }
 
       const body: Record<string, unknown> = {
-        contribuyente: contribuyente.id,
+        contribuyente: {
+          id: contribuyente.id,
+          numero_contribuyente: contribuyente.numero_contribuyente,
+          nombre: contribuyente.nombre,
+          numero_documento: contribuyente.numero_documento,
+          telefono_web: contribuyente.telefono_web,
+          email: contribuyente.email,
+          domicilio: contribuyente.domicilio,
+        },
         tipo,
         descripcion: descripcion.trim(),
         medio,

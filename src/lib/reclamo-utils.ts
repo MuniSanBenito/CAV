@@ -68,5 +68,5 @@ export function getContribuyenteNombre(
   contribuyente: ReclamoEjecutor['contribuyente'],
 ): string | null {
   if (!contribuyente || typeof contribuyente !== 'object') return null
-  return `${contribuyente.nombre} ${contribuyente.apellido}`.trim()
+  return contribuyente.nombre?.trim() || null
 }

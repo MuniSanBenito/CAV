@@ -42,9 +42,9 @@ interface Area {
 
 interface Contribuyente {
   id: string
-  nombre: string
-  apellido: string
-  dni: string
+  nombre?: string | null
+  numero_documento?: string | null
+  telefono_web?: string | null
 }
 
 interface Reclamo {
@@ -56,7 +56,7 @@ interface Reclamo {
   area_derivada: Area | string
   estado: string
   prioridad: string
-  contribuyente: Contribuyente | string
+  contribuyente: Contribuyente
   createdAt: string
   fechaCompromiso?: string | null
 }
@@ -72,7 +72,7 @@ const columnHelper = createColumnHelper<Reclamo>()
 const SORT_FIELD_MAP: Record<string, string> = {
   numero: 'numero',
   tipo: 'tipo',
-  contribuyente: 'contribuyente.apellido',
+  contribuyente: 'contribuyente.nombre',
   area_derivada: 'area_derivada',
   estado: 'estado',
   prioridad: 'prioridad',
@@ -148,11 +148,10 @@ function buildReclamosQueryParams(options: {
   if (debouncedSearch) {
     params.set('where[or][0][descripcion][like]', debouncedSearch)
     params.set('where[or][1][contribuyente.nombre][like]', debouncedSearch)
-    params.set('where[or][2][contribuyente.apellido][like]', debouncedSearch)
-    params.set('where[or][3][contribuyente.dni][like]', debouncedSearch)
+    params.set('where[or][2][contribuyente.numero_documento][like]', debouncedSearch)
     const asNumber = Number(debouncedSearch)
     if (!Number.isNaN(asNumber) && /^\d+$/.test(debouncedSearch)) {
-      params.set('where[or][4][numero][equals]', String(asNumber))
+      params.set('where[or][3][numero][equals]', String(asNumber))
     }
   }
 
@@ -305,10 +304,9 @@ export default function ReclamosTable() {
       const rows = docs.map((r: Record<string, unknown>) => {
         const areaDerivada = r.area_derivada as Area | string | undefined
         const concepto = r.concepto as { nombre?: string } | string | undefined
-        const contribuyente = r.contribuyente as Contribuyente | string | undefined
+        const contribuyente = r.contribuyente as Contribuyente | undefined
         const ubicacion = r.ubicacion as
-          | { direccionIngresada?: string; barrio?: string }
-          | undefined
+          { direccionIngresada?: string; barrio?: string } | undefined
 
         return [
           r.numero ?? '',
@@ -319,10 +317,8 @@ export default function ReclamosTable() {
             ? areaDerivada.nombre
             : (areaDerivada ?? ''),
           typeof concepto === 'object' && concepto ? concepto.nombre : (concepto ?? ''),
-          typeof contribuyente === 'object' && contribuyente
-            ? `${contribuyente.nombre} ${contribuyente.apellido}`
-            : (contribuyente ?? ''),
-          typeof contribuyente === 'object' && contribuyente ? (contribuyente.dni ?? '') : '',
+          contribuyente?.nombre ?? '',
+          contribuyente?.numero_documento ?? '',
           r.descripcion ?? '',
           ubicacion?.direccionIngresada ?? '',
           ubicacion?.barrio ?? '',
@@ -371,19 +367,11 @@ export default function ReclamosTable() {
           </span>
         ),
       }),
-      columnHelper.accessor(
-        (row) => {
-          if (typeof row.contribuyente === 'object' && row.contribuyente !== null) {
-            return `${row.contribuyente.nombre} ${row.contribuyente.apellido}`
-          }
-          return ''
-        },
-        {
-          id: 'contribuyente',
-          header: 'Contribuyente',
-          cell: (info) => <span className="reclamos-cell-title">{info.getValue() || '—'}</span>,
-        },
-      ),
+      columnHelper.accessor((row) => row.contribuyente?.nombre ?? '', {
+        id: 'contribuyente',
+        header: 'Contribuyente',
+        cell: (info) => <span className="reclamos-cell-title">{info.getValue() || '—'}</span>,
+      }),
       columnHelper.accessor(
         (row) => {
           if (typeof row.area_derivada === 'object' && row.area_derivada !== null)

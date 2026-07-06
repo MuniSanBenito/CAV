@@ -7,7 +7,6 @@ import { fileURLToPath } from 'url'
 
 import { Areas } from './collections/Areas'
 import { ConceptosReclamo } from './collections/ConceptosReclamo'
-import { Contribuyentes } from './collections/Contribuyentes'
 import { Media } from './collections/Media'
 import { Reclamos } from './collections/Reclamos'
 import { Users } from './collections/Users'
@@ -29,7 +28,7 @@ export default buildConfig({
       titleSuffix: '— CAV San Benito',
     },
   },
-  collections: [Users, Areas, ConceptosReclamo, Media, Reclamos, Contribuyentes],
+  collections: [Users, Areas, ConceptosReclamo, Media, Reclamos],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

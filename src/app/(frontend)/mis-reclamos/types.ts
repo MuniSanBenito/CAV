@@ -7,11 +7,12 @@ export interface AreaRef {
 
 export interface ContribuyenteRef {
   id: string
-  nombre: string
-  apellido: string
-  dni?: string | null
-  telefono?: string | null
+  numero_contribuyente?: number | null
+  nombre?: string | null
+  numero_documento?: string | null
+  telefono_web?: string | null
   email?: string | null
+  domicilio?: string | null
 }
 
 export interface ConceptoRef {
@@ -55,7 +56,7 @@ export interface ReclamoEjecutor {
     localidad?: string | null
     location?: [number, number] | null
   } | null
-  contribuyente?: string | ContribuyenteRef | null
+  contribuyente?: ContribuyenteRef | null
   concepto?: string | ConceptoRef | null
   area_derivada?: string | AreaRef | null
   fotos?: (string | Media)[] | null

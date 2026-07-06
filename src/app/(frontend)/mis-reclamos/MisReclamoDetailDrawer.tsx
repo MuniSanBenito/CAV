@@ -135,13 +135,13 @@ export default function MisReclamoDetailDrawer({ reclamo, onClose, onActuar }: P
                 <IconUser size={16} />
                 <span>{contribuyenteNombre}</span>
               </div>
-              {contribuyente?.dni && (
-                <div className="mis-reclamo-detail-meta">DNI: {contribuyente.dni}</div>
+              {contribuyente?.numero_documento && (
+                <div className="mis-reclamo-detail-meta">DNI: {contribuyente.numero_documento}</div>
               )}
-              {contribuyente?.telefono && (
-                <a href={`tel:${contribuyente.telefono}`} className="mis-reclamo-detail-phone">
+              {contribuyente?.telefono_web && (
+                <a href={`tel:${contribuyente.telefono_web}`} className="mis-reclamo-detail-phone">
                   <IconPhone size={15} />
-                  {contribuyente.telefono}
+                  {contribuyente.telefono_web}
                 </a>
               )}
             </div>

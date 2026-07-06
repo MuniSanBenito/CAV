@@ -72,7 +72,6 @@ export interface Config {
     'conceptos-reclamo': ConceptosReclamo;
     media: Media;
     reclamos: Reclamo;
-    contribuyentes: Contribuyente;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -85,7 +84,6 @@ export interface Config {
     'conceptos-reclamo': ConceptosReclamoSelect<false> | ConceptosReclamoSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     reclamos: ReclamosSelect<false> | ReclamosSelect<true>;
-    contribuyentes: ContribuyentesSelect<false> | ContribuyentesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -268,9 +266,17 @@ export interface Reclamo {
    */
   numero?: number | null;
   /**
-   * Contribuyente que realiza el reclamo
+   * Contribuyente que realiza el reclamo (datos de la web municipal)
    */
-  contribuyente: string | Contribuyente;
+  contribuyente: {
+    id: string;
+    numero_contribuyente?: number | null;
+    nombre?: string | null;
+    numero_documento?: string | null;
+    telefono_web?: string | null;
+    email?: string | null;
+    domicilio?: string | null;
+  };
   tipo: 'reclamo' | 'sugerencia' | 'denuncia' | 'consulta';
   descripcion: string;
   medio: 'presencial' | 'whatsapp' | 'correo' | 'calle' | 'otro';
@@ -366,21 +372,6 @@ export interface Reclamo {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contribuyentes".
- */
-export interface Contribuyente {
-  id: string;
-  nombre: string;
-  apellido: string;
-  dni?: string | null;
-  telefono?: string | null;
-  email?: string | null;
-  direccion?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -422,10 +413,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'reclamos';
         value: string | Reclamo;
-      } | null)
-    | ({
-        relationTo: 'contribuyentes';
-        value: string | Contribuyente;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -579,7 +566,17 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface ReclamosSelect<T extends boolean = true> {
   numero?: T;
-  contribuyente?: T;
+  contribuyente?:
+    | T
+    | {
+        id?: T;
+        numero_contribuyente?: T;
+        nombre?: T;
+        numero_documento?: T;
+        telefono_web?: T;
+        email?: T;
+        domicilio?: T;
+      };
   tipo?: T;
   descripcion?: T;
   medio?: T;
@@ -620,20 +617,6 @@ export interface ReclamosSelect<T extends boolean = true> {
         usuario?: T;
         id?: T;
       };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contribuyentes_select".
- */
-export interface ContribuyentesSelect<T extends boolean = true> {
-  nombre?: T;
-  apellido?: T;
-  dni?: T;
-  telefono?: T;
-  email?: T;
-  direccion?: T;
   updatedAt?: T;
   createdAt?: T;
 }

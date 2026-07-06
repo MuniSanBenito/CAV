@@ -1,7 +1,7 @@
 import type { CollectionConfig, Where } from 'payload'
 import { APIError } from 'payload'
-import { isAdmin, authenticated } from '../access/roles'
-import { geocodeAddress, extractBarrio, extractLocalidad } from '../lib/geocoding'
+import { isAdmin } from '../access/roles'
+import { extractBarrio, extractLocalidad, geocodeAddress } from '../lib/geocoding'
 import { getMongoCollection } from '../lib/mongodb'
 
 const TERMINAL_ESTADOS = ['resuelto', 'rechazado'] as const
@@ -64,12 +64,25 @@ export const Reclamos: CollectionConfig = {
     },
     {
       name: 'contribuyente',
-      type: 'relationship',
-      relationTo: 'contribuyentes',
+      type: 'group',
       required: true,
       admin: {
-        description: 'Contribuyente que realiza el reclamo',
+        description: 'Contribuyente que realiza el reclamo (datos de la web municipal)',
       },
+      fields: [
+        {
+          name: 'id',
+          type: 'text',
+          required: true,
+          admin: { readOnly: true },
+        },
+        { name: 'numero_contribuyente', type: 'number' },
+        { name: 'nombre', type: 'text' },
+        { name: 'numero_documento', type: 'text' },
+        { name: 'telefono_web', type: 'text' },
+        { name: 'email', type: 'text' },
+        { name: 'domicilio', type: 'text' },
+      ],
     },
     {
       name: 'tipo',
@@ -372,7 +385,10 @@ export const Reclamos: CollectionConfig = {
           }
 
           const nuevoEstado = incoming.estado as string | undefined
-          if (!nuevoEstado || !EJECUTOR_ESTADOS.includes(nuevoEstado as (typeof EJECUTOR_ESTADOS)[number])) {
+          if (
+            !nuevoEstado ||
+            !EJECUTOR_ESTADOS.includes(nuevoEstado as (typeof EJECUTOR_ESTADOS)[number])
+          ) {
             throw new APIError('Estado no permitido', 400)
           }
 
@@ -399,7 +415,8 @@ export const Reclamos: CollectionConfig = {
 
         // SLA: auto-calcular fechaCompromiso si no fue cargada manualmente
         if (operation === 'create' && !data.fechaCompromiso) {
-          const dias = typeof data.diasResolucionEstimados === 'number' ? data.diasResolucionEstimados : 7
+          const dias =
+            typeof data.diasResolucionEstimados === 'number' ? data.diasResolucionEstimados : 7
           const compromiso = new Date()
           compromiso.setDate(compromiso.getDate() + dias)
           data.fechaCompromiso = compromiso.toISOString()
@@ -419,8 +436,7 @@ export const Reclamos: CollectionConfig = {
         // We ignore any client-sent `movimientos` array and append server-side.
         if (operation === 'update') {
           const nuevoMov = (data as Record<string, unknown>)._nuevoMovimiento as
-            | { estado: string; nota: string; adjuntos?: string[] }
-            | undefined
+            { estado: string; nota: string; adjuntos?: string[] } | undefined
           if (nuevoMov && req.user) {
             const existingMovimientos = (originalDoc?.movimientos as unknown[]) || []
             data.movimientos = [
@@ -530,6 +546,6 @@ export const Reclamos: CollectionConfig = {
     { fields: ['estado', 'prioridad', 'createdAt'] },
     { fields: ['createdAt'] }, // sort=-createdAt sin filtros
     { fields: ['tipo'] }, // filtro de tabla y mapa
-    { fields: ['contribuyente'] }, // join inverso al buscar reclamos por contribuyente
+    { fields: ['contribuyente.nombre', 'contribuyente.numero_documento'] },
   ],
 }

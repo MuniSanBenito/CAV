@@ -129,17 +129,19 @@ export default function MisReclamoCard({ reclamo, onOpenDetail, onActuar }: Prop
               <div className="mis-reclamo-card-info-content">
                 <span className="mis-reclamo-card-info-label">Contribuyente</span>
                 <span className="mis-reclamo-card-info-value">{contribuyenteNombre}</span>
-                {contribuyente?.dni && (
-                  <span className="mis-reclamo-card-info-extra">DNI {contribuyente.dni}</span>
+                {contribuyente?.numero_documento && (
+                  <span className="mis-reclamo-card-info-extra">
+                    DNI {contribuyente.numero_documento}
+                  </span>
                 )}
-                {contribuyente?.telefono && (
+                {contribuyente?.telefono_web && (
                   <a
-                    href={`tel:${contribuyente.telefono}`}
+                    href={`tel:${contribuyente.telefono_web}`}
                     className="mis-reclamo-card-phone"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <IconPhone size={13} />
-                    {contribuyente.telefono}
+                    {contribuyente.telefono_web}
                   </a>
                 )}
               </div>

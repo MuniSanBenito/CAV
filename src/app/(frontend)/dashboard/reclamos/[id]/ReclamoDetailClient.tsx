@@ -250,8 +250,10 @@ export default function ReclamoDetailClient({ id }: { id: string }) {
               >
                 {contribuyente && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <IconUser size={16} /> Contribuyente: {contribuyente.nombre}{' '}
-                    {contribuyente.apellido} (DNI: {contribuyente.dni})
+                    <IconUser size={16} /> Contribuyente: {contribuyente.nombre}
+                    {contribuyente.numero_documento
+                      ? ` (DNI: ${contribuyente.numero_documento})`
+                      : ''}
                   </div>
                 )}
                 {reclamo.calle && (
