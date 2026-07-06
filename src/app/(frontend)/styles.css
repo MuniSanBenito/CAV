@@ -1642,6 +1642,13 @@ svg {
   color: var(--c-text-3);
 }
 
+.reclamos-filter-label {
+  font-size: 13px;
+  color: var(--c-text-2);
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  white-space: nowrap;
+}
+
 .reclamos-filter-select {
   padding: 8px 12px;
   border-radius: 8px;

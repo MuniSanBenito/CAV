@@ -1,39 +1,39 @@
 'use client'
 
-import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  createColumnHelper,
-  type SortingState,
-  type ColumnFiltersState,
-  type PaginationState,
-} from '@tanstack/react-table'
+  estadoBadgeClass,
+  estadoLabel,
+  getSlaStatus,
+  prioridadBadgeClass,
+  prioridadLabel,
+  slaBadgeClass,
+  slaLabel,
+  tipoBadgeClass,
+  tipoLabel,
+} from '@/lib/constants'
 import {
-  IconPlus,
-  IconSearch,
   IconChevronLeft,
   IconChevronRight,
+  IconDownload,
+  IconFilter,
+  IconPlus,
+  IconRefresh,
+  IconSearch,
   IconSelector,
   IconSortAscending,
   IconSortDescending,
-  IconFilter,
-  IconRefresh,
-  IconDownload,
 } from '@tabler/icons-react'
 import {
-  estadoLabel,
-  estadoBadgeClass,
-  prioridadLabel,
-  prioridadBadgeClass,
-  tipoLabel,
-  tipoBadgeClass,
-  getSlaStatus,
-  slaLabel,
-  slaBadgeClass,
-} from '@/lib/constants'
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnFiltersState,
+  type PaginationState,
+  type SortingState,
+} from '@tanstack/react-table'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface Area {
   id: string
@@ -306,25 +306,33 @@ export default function ReclamosTable() {
         const areaDerivada = r.area_derivada as Area | string | undefined
         const concepto = r.concepto as { nombre?: string } | string | undefined
         const contribuyente = r.contribuyente as Contribuyente | string | undefined
-        const ubicacion = r.ubicacion as { direccionIngresada?: string; barrio?: string } | undefined
+        const ubicacion = r.ubicacion as
+          | { direccionIngresada?: string; barrio?: string }
+          | undefined
 
         return [
           r.numero ?? '',
           r.tipo ?? '',
           r.estado ?? '',
           r.prioridad ?? '',
-          typeof areaDerivada === 'object' && areaDerivada ? areaDerivada.nombre : areaDerivada ?? '',
-          typeof concepto === 'object' && concepto ? concepto.nombre : concepto ?? '',
+          typeof areaDerivada === 'object' && areaDerivada
+            ? areaDerivada.nombre
+            : (areaDerivada ?? ''),
+          typeof concepto === 'object' && concepto ? concepto.nombre : (concepto ?? ''),
           typeof contribuyente === 'object' && contribuyente
             ? `${contribuyente.nombre} ${contribuyente.apellido}`
-            : contribuyente ?? '',
-          typeof contribuyente === 'object' && contribuyente ? contribuyente.dni ?? '' : '',
+            : (contribuyente ?? ''),
+          typeof contribuyente === 'object' && contribuyente ? (contribuyente.dni ?? '') : '',
           r.descripcion ?? '',
           ubicacion?.direccionIngresada ?? '',
           ubicacion?.barrio ?? '',
           r.createdAt ? new Date(r.createdAt as string).toLocaleDateString('es-AR') : '',
-          r.fechaCompromiso ? new Date(r.fechaCompromiso as string).toLocaleDateString('es-AR') : '',
-          r.fechaResolucion ? new Date(r.fechaResolucion as string).toLocaleDateString('es-AR') : '',
+          r.fechaCompromiso
+            ? new Date(r.fechaCompromiso as string).toLocaleDateString('es-AR')
+            : '',
+          r.fechaResolucion
+            ? new Date(r.fechaResolucion as string).toLocaleDateString('es-AR')
+            : '',
         ]
       })
 
@@ -405,23 +413,18 @@ export default function ReclamosTable() {
           </span>
         ),
       }),
-      columnHelper.accessor(
-        (row) => getSlaStatus(row.fechaCompromiso, row.estado),
-        {
-          id: 'sla',
-          header: 'SLA',
-          enableSorting: false,
-          cell: (info) => {
-            const status = info.getValue()
-            if (!status) return '—'
-            return (
-              <span className={`dash-badge ${slaBadgeClass[status] || ''}`}>
-                {slaLabel[status]}
-              </span>
-            )
-          },
+      columnHelper.accessor((row) => getSlaStatus(row.fechaCompromiso, row.estado), {
+        id: 'sla',
+        header: 'SLA',
+        enableSorting: false,
+        cell: (info) => {
+          const status = info.getValue()
+          if (!status) return '—'
+          return (
+            <span className={`dash-badge ${slaBadgeClass[status] || ''}`}>{slaLabel[status]}</span>
+          )
         },
-      ),
+      }),
       columnHelper.accessor('createdAt', {
         header: 'Fecha',
         cell: (info) =>
@@ -511,87 +514,89 @@ export default function ReclamosTable() {
         <div className="reclamos-filter-group">
           <IconFilter size={16} />
           <select
-              id="filter-estado"
-              className="reclamos-filter-select"
-              value={(columnFilters.find((f) => f.id === 'estado')?.value as string) || ''}
-              onChange={(e) => {
-                setColumnFilters((prev) => {
-                  const next = prev.filter((f) => f.id !== 'estado')
-                  if (e.target.value) next.push({ id: 'estado', value: e.target.value })
-                  return next
-                })
-              }}
-            >
-              <option value="">Todos los estados</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="en_proceso">En Proceso</option>
-              <option value="resuelto">Resuelto</option>
-              <option value="rechazado">Rechazado</option>
-            </select>
-          </div>
+            id="filter-estado"
+            className="reclamos-filter-select"
+            value={(columnFilters.find((f) => f.id === 'estado')?.value as string) || ''}
+            onChange={(e) => {
+              setColumnFilters((prev) => {
+                const next = prev.filter((f) => f.id !== 'estado')
+                if (e.target.value) next.push({ id: 'estado', value: e.target.value })
+                return next
+              })
+            }}
+          >
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_proceso">En Proceso</option>
+            <option value="resuelto">Resuelto</option>
+            <option value="rechazado">Rechazado</option>
+          </select>
+        </div>
 
-          <div className="reclamos-filter-group">
-            <select
-              id="filter-tipo"
-              className="reclamos-filter-select"
-              value={(columnFilters.find((f) => f.id === 'tipo')?.value as string) || ''}
-              onChange={(e) => {
-                setColumnFilters((prev) => {
-                  const next = prev.filter((f) => f.id !== 'tipo')
-                  if (e.target.value) next.push({ id: 'tipo', value: e.target.value })
-                  return next
-                })
-              }}
-            >
-              <option value="">Todos los tipos</option>
-              <option value="reclamo">Reclamo</option>
-              <option value="sugerencia">Sugerencia</option>
-              <option value="denuncia">Denuncia</option>
-              <option value="consulta">Consulta</option>
-            </select>
-          </div>
+        <div className="reclamos-filter-group">
+          <select
+            id="filter-tipo"
+            className="reclamos-filter-select"
+            value={(columnFilters.find((f) => f.id === 'tipo')?.value as string) || ''}
+            onChange={(e) => {
+              setColumnFilters((prev) => {
+                const next = prev.filter((f) => f.id !== 'tipo')
+                if (e.target.value) next.push({ id: 'tipo', value: e.target.value })
+                return next
+              })
+            }}
+          >
+            <option value="">Todos los tipos</option>
+            <option value="reclamo">Reclamo</option>
+            <option value="sugerencia">Sugerencia</option>
+            <option value="denuncia">Denuncia</option>
+            <option value="consulta">Consulta</option>
+          </select>
+        </div>
 
-          <div className="reclamos-filter-group">
-            <select
-              id="filter-area"
-              className="reclamos-filter-select"
-              value={(columnFilters.find((f) => f.id === 'area_derivada')?.value as string) || ''}
-              onChange={(e) => {
-                setColumnFilters((prev) => {
-                  const next = prev.filter((f) => f.id !== 'area_derivada')
-                  if (e.target.value) next.push({ id: 'area_derivada', value: e.target.value })
-                  return next
-                })
-              }}
-            >
-              <option value="">Todas las áreas</option>
-              {areas.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="reclamos-filter-group">
+          <select
+            id="filter-area"
+            className="reclamos-filter-select"
+            value={(columnFilters.find((f) => f.id === 'area_derivada')?.value as string) || ''}
+            onChange={(e) => {
+              setColumnFilters((prev) => {
+                const next = prev.filter((f) => f.id !== 'area_derivada')
+                if (e.target.value) next.push({ id: 'area_derivada', value: e.target.value })
+                return next
+              })
+            }}
+          >
+            <option value="">Todas las áreas</option>
+            {areas.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div className="reclamos-filter-group">
-            <select
-              id="filter-sla"
-              className="reclamos-filter-select"
-              value={(columnFilters.find((f) => f.id === 'sla')?.value as string) || ''}
-              onChange={(e) => {
-                setColumnFilters((prev) => {
-                  const next = prev.filter((f) => f.id !== 'sla')
-                  if (e.target.value) next.push({ id: 'sla', value: e.target.value })
-                  return next
-                })
-              }}
-            >
-              <option value="">SLA: todos</option>
-              <option value="vencido">Vencidos</option>
-              <option value="por_vencer">Por vencer (48hs)</option>
-            </select>
-          </div>
+        <div className="reclamos-filter-group">
+          <select
+            id="filter-sla"
+            className="reclamos-filter-select"
+            value={(columnFilters.find((f) => f.id === 'sla')?.value as string) || ''}
+            onChange={(e) => {
+              setColumnFilters((prev) => {
+                const next = prev.filter((f) => f.id !== 'sla')
+                if (e.target.value) next.push({ id: 'sla', value: e.target.value })
+                return next
+              })
+            }}
+          >
+            <option value="">SLA: todos</option>
+            <option value="vencido">Vencidos</option>
+            <option value="por_vencer">Por vencer (48hs)</option>
+          </select>
+        </div>
 
+        <div className="reclamos-filter-group">
+          <span className="reclamos-filter-label">Desde</span>
           <input
             id="filter-fecha-desde"
             type="date"
@@ -601,7 +606,10 @@ export default function ReclamosTable() {
             title="Fecha desde"
             aria-label="Fecha desde"
           />
+        </div>
 
+        <div className="reclamos-filter-group">
+          <span className="reclamos-filter-label">Hasta</span>
           <input
             id="filter-fecha-hasta"
             type="date"
@@ -612,6 +620,7 @@ export default function ReclamosTable() {
             title="Fecha hasta"
             aria-label="Fecha hasta"
           />
+        </div>
       </div>
 
       {/* Table */}
