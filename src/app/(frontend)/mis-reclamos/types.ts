@@ -6,7 +6,7 @@ export interface AreaRef {
 }
 
 export interface ContribuyenteRef {
-  id: string
+  externoId: string
   numero_contribuyente?: number | null
   nombre?: string | null
   numero_documento?: string | null

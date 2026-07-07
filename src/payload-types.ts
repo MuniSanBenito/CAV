@@ -269,7 +269,10 @@ export interface Reclamo {
    * Contribuyente que realiza el reclamo (datos de la web municipal)
    */
   contribuyente: {
-    id: string;
+    /**
+     * ID del contribuyente en la web municipal
+     */
+    externoId: string;
     numero_contribuyente?: number | null;
     nombre?: string | null;
     numero_documento?: string | null;
@@ -569,7 +572,7 @@ export interface ReclamosSelect<T extends boolean = true> {
   contribuyente?:
     | T
     | {
-        id?: T;
+        externoId?: T;
         numero_contribuyente?: T;
         nombre?: T;
         numero_documento?: T;

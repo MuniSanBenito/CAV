@@ -1,6 +1,7 @@
 import type { CollectionConfig, Where } from 'payload'
 import { APIError } from 'payload'
 import { isAdmin } from '../access/roles'
+import { normalizeContribuyenteForRead } from '../lib/contribuyente-snapshot'
 import { extractBarrio, extractLocalidad, geocodeAddress } from '../lib/geocoding'
 import { getMongoCollection } from '../lib/mongodb'
 
@@ -71,10 +72,10 @@ export const Reclamos: CollectionConfig = {
       },
       fields: [
         {
-          name: 'id',
+          name: 'externoId',
           type: 'text',
           required: true,
-          admin: { readOnly: true },
+          admin: { readOnly: true, description: 'ID del contribuyente en la web municipal' },
         },
         { name: 'numero_contribuyente', type: 'number' },
         { name: 'nombre', type: 'text' },
@@ -538,8 +539,17 @@ export const Reclamos: CollectionConfig = {
         })
       },
     ],
+    afterRead: [
+      async ({ doc, req }) => {
+        doc.contribuyente = await normalizeContribuyenteForRead(
+          doc.contribuyente,
+          doc.id,
+          req.payload,
+        )
+        return doc
+      },
+    ],
   },
-  // Índices para optimizar queries frecuentes
   indexes: [
     { fields: ['estado', 'area_derivada'] },
     { fields: ['ubicacion.location'] },

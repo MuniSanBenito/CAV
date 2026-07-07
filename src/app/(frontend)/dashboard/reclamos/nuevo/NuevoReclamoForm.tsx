@@ -2,6 +2,7 @@
 
 import AddressSearch from '@/components/AddressSearch'
 import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
+import { toContribuyenteSnapshot } from '@/lib/contribuyente-snapshot'
 import type { Contribuyente } from '@/mi-sanbenito/types'
 import {
   IconAlertCircle,
@@ -231,15 +232,7 @@ export default function NuevoReclamoForm({
       }
 
       const body: Record<string, unknown> = {
-        contribuyente: {
-          id: contribuyente.id,
-          numero_contribuyente: contribuyente.numero_contribuyente,
-          nombre: contribuyente.nombre,
-          numero_documento: contribuyente.numero_documento,
-          telefono_web: contribuyente.telefono_web,
-          email: contribuyente.email,
-          domicilio: contribuyente.domicilio,
-        },
+        contribuyente: toContribuyenteSnapshot(contribuyente),
         tipo,
         descripcion: descripcion.trim(),
         medio,
