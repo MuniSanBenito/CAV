@@ -1,6 +1,7 @@
 import { getMongoCollection } from '@/lib/mongodb'
+import { getContribuyenteById } from '@/mi-sanbenito/client'
 import type { Contribuyente } from '@/mi-sanbenito/types'
-import type { Payload } from 'payload'
+import type { PayloadRequest } from 'payload'
 
 export interface ContribuyenteSnapshot {
   externoId: string
@@ -12,6 +13,8 @@ export interface ContribuyenteSnapshot {
   domicilio?: string | null
 }
 
+type ContribuyenteCache = Map<string, ContribuyenteSnapshot>
+
 function isObjectIdLike(value: unknown): boolean {
   return (
     value != null &&
@@ -20,7 +23,27 @@ function isObjectIdLike(value: unknown): boolean {
   )
 }
 
-export function toContribuyenteSnapshot(contribuyente: Contribuyente): ContribuyenteSnapshot {
+function extractExternoId(contribuyente: unknown): string | null {
+  if (typeof contribuyente === 'string') return contribuyente
+
+  if (isObjectIdLike(contribuyente)) {
+    return String(contribuyente)
+  }
+
+  if (contribuyente && typeof contribuyente === 'object') {
+    const group = contribuyente as Record<string, unknown>
+    if (group.externoId != null && String(group.externoId).trim()) {
+      return String(group.externoId)
+    }
+    if (group.id != null && String(group.id).trim()) {
+      return String(group.id)
+    }
+  }
+
+  return null
+}
+
+function toHydratedSnapshot(contribuyente: Contribuyente): ContribuyenteSnapshot {
   return {
     externoId: contribuyente.id,
     numero_contribuyente: contribuyente.numero_contribuyente ?? null,
@@ -33,21 +56,29 @@ export function toContribuyenteSnapshot(contribuyente: Contribuyente): Contribuy
   }
 }
 
-function snapshotFromGroup(group: Record<string, unknown>): ContribuyenteSnapshot {
-  const externoId = group.externoId ?? group.id
+function unavailableSnapshot(externoId: string): ContribuyenteSnapshot {
   return {
-    externoId: externoId != null ? String(externoId) : 'desconocido',
-    numero_contribuyente: group.numero_contribuyente as number | null | undefined,
-    nombre: (group.nombre as string | null | undefined) ?? null,
-    numero_documento: group.numero_documento != null ? String(group.numero_documento) : null,
-    telefono_web: group.telefono_web as string | null | undefined,
-    email: group.email as string | null | undefined,
-    domicilio: group.domicilio as string | null | undefined,
+    externoId,
+    nombre: 'Contribuyente no disponible',
   }
 }
 
+function legacySnapshot(externoId: string): ContribuyenteSnapshot {
+  return {
+    externoId,
+    nombre: 'Contribuyente (legacy)',
+  }
+}
+
+function getCache(req: PayloadRequest): ContribuyenteCache {
+  if (!req.context.contribuyenteCache) {
+    req.context.contribuyenteCache = new Map<string, ContribuyenteSnapshot>()
+  }
+  return req.context.contribuyenteCache as ContribuyenteCache
+}
+
 async function readLegacyContribuyenteId(
-  payload: Payload,
+  req: PayloadRequest,
   reclamoId: string,
 ): Promise<string | null> {
   const col = getMongoCollection<{
@@ -55,49 +86,64 @@ async function readLegacyContribuyenteId(
       filter: { _id: string },
       options?: { projection: { contribuyente: 1 } },
     ) => Promise<{ contribuyente?: unknown } | null>
-  }>(payload, 'reclamos')
+  }>(req.payload, 'reclamos')
 
   const raw = await col.findOne({ _id: reclamoId }, { projection: { contribuyente: 1 } })
-
   const rawContribuyente = raw?.contribuyente
   if (!rawContribuyente) return null
 
   if (typeof rawContribuyente === 'string') return rawContribuyente
-  if (isObjectIdLike(rawContribuyente)) {
-    return String(rawContribuyente)
-  }
+  if (isObjectIdLike(rawContribuyente)) return String(rawContribuyente)
 
   return null
 }
 
-export async function normalizeContribuyenteForRead(
+async function fetchContribuyenteSnapshot(
+  externoId: string,
+  req: PayloadRequest,
+): Promise<ContribuyenteSnapshot> {
+  const cache = getCache(req)
+  const cached = cache.get(externoId)
+  if (cached) return cached
+
+  try {
+    const { doc } = await getContribuyenteById(externoId)
+    const snapshot = toHydratedSnapshot(doc)
+    cache.set(externoId, snapshot)
+    return snapshot
+  } catch {
+    const fallback = unavailableSnapshot(externoId)
+    cache.set(externoId, fallback)
+    return fallback
+  }
+}
+
+export async function hydrateContribuyenteForRead(
   contribuyente: unknown,
   reclamoId: string,
-  payload: Payload,
+  req: PayloadRequest,
 ): Promise<ContribuyenteSnapshot> {
-  if (typeof contribuyente === 'string') {
-    return { externoId: contribuyente, nombre: 'Contribuyente (legacy)' }
-  }
+  let externoId = extractExternoId(contribuyente)
 
-  if (isObjectIdLike(contribuyente)) {
-    const legacyId = await readLegacyContribuyenteId(payload, reclamoId)
-    return {
-      externoId: legacyId ?? 'legacy',
-      nombre: 'Contribuyente (legacy)',
+  if (!externoId || externoId === 'desconocido') {
+    const legacyId = await readLegacyContribuyenteId(req, reclamoId)
+    if (legacyId) {
+      externoId = legacyId
     }
   }
 
-  if (contribuyente && typeof contribuyente === 'object') {
-    const group = contribuyente as Record<string, unknown>
-    const snapshot = snapshotFromGroup(group)
-    if (!snapshot.externoId || snapshot.externoId === 'desconocido') {
-      const legacyId = await readLegacyContribuyenteId(payload, reclamoId)
-      if (legacyId) {
-        snapshot.externoId = legacyId
-      }
-    }
-    return snapshot
+  if (!externoId) {
+    return { externoId: 'desconocido', nombre: 'Contribuyente (legacy)' }
   }
 
-  return { externoId: 'desconocido', nombre: 'Contribuyente (legacy)' }
+  if (externoId === 'legacy' || externoId === 'desconocido') {
+    return legacySnapshot(externoId)
+  }
+
+  return fetchContribuyenteSnapshot(externoId, req)
+}
+
+/** @deprecated Use { externoId } when creating reclamos */
+export function toContribuyenteSnapshot(contribuyente: Contribuyente): ContribuyenteSnapshot {
+  return toHydratedSnapshot(contribuyente)
 }

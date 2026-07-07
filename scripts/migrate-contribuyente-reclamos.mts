@@ -16,12 +16,11 @@ async function main() {
         $set: {
           contribuyente: {
             externoId: String(doc.contribuyente),
-            nombre: 'Contribuyente (legacy)',
           },
         },
       },
     )
-    console.log(`Migrado reclamo #${doc.numero} (ObjectId → grupo)`)
+    console.log(`Migrado reclamo #${doc.numero} (ObjectId → externoId)`)
   }
 
   const sinExternoId = await col
@@ -44,7 +43,36 @@ async function main() {
     console.log(`Agregado externoId en reclamo #${doc.numero}`)
   }
 
-  console.log(`Listo: ${legacy.length} legacy, ${sinExternoId.length} sin externoId`)
+  const conSnapshot = await col
+    .find({
+      contribuyente: { $type: 'object' },
+      'contribuyente.externoId': { $exists: true },
+      $or: [
+        { 'contribuyente.nombre': { $exists: true } },
+        { 'contribuyente.numero_documento': { $exists: true } },
+        { 'contribuyente.telefono_web': { $exists: true } },
+        { 'contribuyente.email': { $exists: true } },
+        { 'contribuyente.domicilio': { $exists: true } },
+        { 'contribuyente.numero_contribuyente': { $exists: true } },
+      ],
+    })
+    .toArray()
+
+  for (const doc of conSnapshot) {
+    const c = doc.contribuyente as Record<string, unknown>
+    const externoId = c.externoId != null ? String(c.externoId) : 'desconocido'
+    await col.updateOne(
+      { _id: doc._id },
+      {
+        $set: { contribuyente: { externoId } },
+      },
+    )
+    console.log(`Limpiado snapshot en reclamo #${doc.numero}`)
+  }
+
+  console.log(
+    `Listo: ${legacy.length} legacy, ${sinExternoId.length} sin externoId, ${conSnapshot.length} snapshots limpiados`,
+  )
   await client.close()
 }
 

@@ -1,7 +1,7 @@
 import type { CollectionConfig, Where } from 'payload'
 import { APIError } from 'payload'
 import { isAdmin } from '../access/roles'
-import { normalizeContribuyenteForRead } from '../lib/contribuyente-snapshot'
+import { hydrateContribuyenteForRead } from '../lib/contribuyente-snapshot'
 import { extractBarrio, extractLocalidad, geocodeAddress } from '../lib/geocoding'
 import { getMongoCollection } from '../lib/mongodb'
 
@@ -68,21 +68,16 @@ export const Reclamos: CollectionConfig = {
       type: 'group',
       required: true,
       admin: {
-        description: 'Contribuyente que realiza el reclamo (datos de la web municipal)',
+        description: 'Contribuyente que realiza el reclamo (referencia a la web municipal)',
       },
       fields: [
         {
           name: 'externoId',
           type: 'text',
           required: true,
+          index: true,
           admin: { readOnly: true, description: 'ID del contribuyente en la web municipal' },
         },
-        { name: 'numero_contribuyente', type: 'number' },
-        { name: 'nombre', type: 'text' },
-        { name: 'numero_documento', type: 'text' },
-        { name: 'telefono_web', type: 'text' },
-        { name: 'email', type: 'text' },
-        { name: 'domicilio', type: 'text' },
       ],
     },
     {
@@ -541,11 +536,7 @@ export const Reclamos: CollectionConfig = {
     ],
     afterRead: [
       async ({ doc, req }) => {
-        doc.contribuyente = await normalizeContribuyenteForRead(
-          doc.contribuyente,
-          doc.id,
-          req.payload,
-        )
+        doc.contribuyente = await hydrateContribuyenteForRead(doc.contribuyente, doc.id, req)
         return doc
       },
     ],
@@ -556,6 +547,6 @@ export const Reclamos: CollectionConfig = {
     { fields: ['estado', 'prioridad', 'createdAt'] },
     { fields: ['createdAt'] }, // sort=-createdAt sin filtros
     { fields: ['tipo'] }, // filtro de tabla y mapa
-    { fields: ['contribuyente.nombre', 'contribuyente.numero_documento'] },
+    { fields: ['contribuyente.externoId'] },
   ],
 }

@@ -2322,7 +2322,8 @@ svg {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 0.6rem 0.85rem;
   border: none;
   background: transparent;
@@ -2333,6 +2334,34 @@ svg {
 
   &:hover {
     background: rgba(182, 197, 68, 0.1);
+  }
+}
+
+.contrib-dropdown-item-wrap {
+  display: flex;
+  align-items: stretch;
+
+  &:hover .contrib-dropdown-item {
+    background: rgba(182, 197, 68, 0.1);
+  }
+}
+
+.contrib-dropdown-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-text-3);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(182, 197, 68, 0.15);
+    color: #b6c544;
   }
 }
 
@@ -2483,6 +2512,26 @@ svg {
   &:hover {
     background: rgba(255, 60, 60, 0.15);
     color: #ff6b6b;
+  }
+}
+
+.contrib-edit-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--c-card-alt);
+  color: var(--c-text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(182, 197, 68, 0.15);
+    color: #b6c544;
   }
 }
 

@@ -266,19 +266,13 @@ export interface Reclamo {
    */
   numero?: number | null;
   /**
-   * Contribuyente que realiza el reclamo (datos de la web municipal)
+   * Contribuyente que realiza el reclamo (referencia a la web municipal)
    */
   contribuyente: {
     /**
      * ID del contribuyente en la web municipal
      */
     externoId: string;
-    numero_contribuyente?: number | null;
-    nombre?: string | null;
-    numero_documento?: string | null;
-    telefono_web?: string | null;
-    email?: string | null;
-    domicilio?: string | null;
   };
   tipo: 'reclamo' | 'sugerencia' | 'denuncia' | 'consulta';
   descripcion: string;
@@ -573,12 +567,6 @@ export interface ReclamosSelect<T extends boolean = true> {
     | T
     | {
         externoId?: T;
-        numero_contribuyente?: T;
-        nombre?: T;
-        numero_documento?: T;
-        telefono_web?: T;
-        email?: T;
-        domicilio?: T;
       };
   tipo?: T;
   descripcion?: T;

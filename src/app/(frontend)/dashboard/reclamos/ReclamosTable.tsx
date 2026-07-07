@@ -11,6 +11,7 @@ import {
   tipoBadgeClass,
   tipoLabel,
 } from '@/lib/constants'
+import { buildContribuyenteSearchParams } from '@/lib/contribuyente-map'
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -72,11 +73,22 @@ const columnHelper = createColumnHelper<Reclamo>()
 const SORT_FIELD_MAP: Record<string, string> = {
   numero: 'numero',
   tipo: 'tipo',
-  contribuyente: 'contribuyente.nombre',
   area_derivada: 'area_derivada',
   estado: 'estado',
   prioridad: 'prioridad',
   createdAt: 'createdAt',
+}
+
+async function fetchContribuyenteIdsForSearch(query: string): Promise<string[]> {
+  if (!query.trim()) return []
+  try {
+    const params = buildContribuyenteSearchParams(query, 20)
+    const res = await fetch(`/api/contribuyentes?${params}`, { credentials: 'include' })
+    const data = await res.json()
+    return (data?.docs || []).map((c: { id: string }) => c.id)
+  } catch {
+    return []
+  }
 }
 
 function escapeCsvCell(value: unknown): string {
@@ -103,9 +115,18 @@ function buildReclamosQueryParams(options: {
   fechaHasta?: string
   pagination?: { pageIndex: number; pageSize: number }
   exportAll?: boolean
+  contribuyenteIds?: string[]
 }): URLSearchParams {
-  const { columnFilters, debouncedSearch, sorting, fechaDesde, fechaHasta, pagination, exportAll } =
-    options
+  const {
+    columnFilters,
+    debouncedSearch,
+    sorting,
+    fechaDesde,
+    fechaHasta,
+    pagination,
+    exportAll,
+    contribuyenteIds,
+  } = options
   const params = new URLSearchParams()
   params.set('depth', '1')
 
@@ -117,7 +138,8 @@ function buildReclamosQueryParams(options: {
   }
 
   const sort = sorting[0]
-  const sortField = sort ? SORT_FIELD_MAP[sort.id] || sort.id : 'numero'
+  const sortField =
+    sort && sort.id !== 'contribuyente' ? SORT_FIELD_MAP[sort.id] || sort.id : 'numero'
   const sortDir = sort?.desc === false ? '' : '-'
   params.set('sort', `${sortDir}${sortField}`)
 
@@ -147,11 +169,14 @@ function buildReclamosQueryParams(options: {
 
   if (debouncedSearch) {
     params.set('where[or][0][descripcion][like]', debouncedSearch)
-    params.set('where[or][1][contribuyente.nombre][like]', debouncedSearch)
-    params.set('where[or][2][contribuyente.numero_documento][like]', debouncedSearch)
+    let orIndex = 1
+    if (contribuyenteIds && contribuyenteIds.length > 0) {
+      params.set(`where[or][${orIndex}][contribuyente.externoId][in]`, contribuyenteIds.join(','))
+      orIndex += 1
+    }
     const asNumber = Number(debouncedSearch)
     if (!Number.isNaN(asNumber) && /^\d+$/.test(debouncedSearch)) {
-      params.set('where[or][3][numero][equals]', String(asNumber))
+      params.set(`where[or][${orIndex}][numero][equals]`, String(asNumber))
     }
   }
 
@@ -210,39 +235,52 @@ export default function ReclamosTable() {
   useEffect(() => {
     const controller = new AbortController()
 
-    if (!firstLoadDone.current) setLoading(true)
-    else setFetching(true)
+    async function loadReclamos() {
+      if (!firstLoadDone.current) setLoading(true)
+      else setFetching(true)
 
-    const params = buildReclamosQueryParams({
-      columnFilters,
-      debouncedSearch,
-      sorting,
-      fechaDesde,
-      fechaHasta,
-      pagination,
-    })
+      try {
+        const contribuyenteIds = debouncedSearch
+          ? await fetchContribuyenteIdsForSearch(debouncedSearch)
+          : undefined
 
-    fetch(`/api/reclamos?${params.toString()}`, {
-      credentials: 'include',
-      signal: controller.signal,
-    })
-      .then((r) => r.json())
-      .then((json) => {
+        if (controller.signal.aborted) return
+
+        const params = buildReclamosQueryParams({
+          columnFilters,
+          debouncedSearch,
+          sorting,
+          fechaDesde,
+          fechaHasta,
+          pagination,
+          contribuyenteIds,
+        })
+
+        const res = await fetch(`/api/reclamos?${params.toString()}`, {
+          credentials: 'include',
+          signal: controller.signal,
+        })
+        const json = await res.json()
+
+        if (controller.signal.aborted) return
+
         if (json?.docs) {
           setData(json.docs)
           setTotalDocs(json.totalDocs ?? 0)
           setTotalPages(json.totalPages ?? 1)
         }
-      })
-      .catch((e) => {
+      } catch (e) {
         if ((e as Error).name !== 'AbortError') console.error('Error fetching reclamos', e)
-      })
-      .finally(() => {
-        firstLoadDone.current = true
-        setLoading(false)
-        setFetching(false)
-      })
+      } finally {
+        if (!controller.signal.aborted) {
+          firstLoadDone.current = true
+          setLoading(false)
+          setFetching(false)
+        }
+      }
+    }
 
+    loadReclamos()
     return () => controller.abort()
   }, [
     pagination.pageIndex,
@@ -260,6 +298,10 @@ export default function ReclamosTable() {
   async function handleExportCSV() {
     setExporting(true)
     try {
+      const contribuyenteIds = debouncedSearch
+        ? await fetchContribuyenteIdsForSearch(debouncedSearch)
+        : undefined
+
       const params = buildReclamosQueryParams({
         columnFilters,
         debouncedSearch,
@@ -267,6 +309,7 @@ export default function ReclamosTable() {
         fechaDesde,
         fechaHasta,
         exportAll: true,
+        contribuyenteIds,
       })
 
       const res = await fetch(`/api/reclamos?${params.toString()}`, { credentials: 'include' })
@@ -371,6 +414,7 @@ export default function ReclamosTable() {
         id: 'contribuyente',
         header: 'Contribuyente',
         cell: (info) => <span className="reclamos-cell-title">{info.getValue() || '—'}</span>,
+        enableSorting: false,
       }),
       columnHelper.accessor(
         (row) => {

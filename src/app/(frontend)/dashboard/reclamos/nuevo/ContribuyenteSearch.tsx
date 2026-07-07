@@ -1,12 +1,18 @@
 'use client'
 
+import { buildContribuyenteSearchParams, splitNombreApellido } from '@/lib/contribuyente-map'
 import type { Contribuyente } from '@/mi-sanbenito/types'
-import { IconCheck, IconPlus, IconSearch, IconUser, IconX } from '@tabler/icons-react'
-import { useEffect, useRef, useState } from 'react'
+import { IconCheck, IconPencil, IconPlus, IconSearch, IconUser, IconX } from '@tabler/icons-react'
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import ContribuyenteFormPanel, {
+  EMPTY_CONTRIBUYENTE_FORM,
+  type ContribuyenteFormValues,
+} from './ContribuyenteFormPanel'
 
 interface Props {
   value: Contribuyente | null
   onChange: (c: Contribuyente | null) => void
+  canEdit?: boolean
 }
 
 function getInitials(nombre?: string | null): string {
@@ -18,40 +24,32 @@ function getInitials(nombre?: string | null): string {
   return nombre.slice(0, 2).toUpperCase()
 }
 
-function buildSearchUrl(query: string): string {
-  const params = new URLSearchParams()
-  params.set('limit', '10')
-  params.set('where[or][0][nombre][contains]', query.trim())
-  params.set('where[or][1][numero_documento][contains]', query.trim())
-
-  if (/^\d+$/.test(query.trim())) {
-    params.set('where[or][2][numero_contribuyente][equals]', query.trim())
+function contribuyenteToFormValues(c: Contribuyente): ContribuyenteFormValues {
+  const { nombre, apellido } = splitNombreApellido(c.nombre)
+  return {
+    nombre,
+    apellido,
+    dni: c.numero_documento != null ? String(c.numero_documento) : '',
+    telefono: c.telefono_web ?? '',
+    email: c.email ?? '',
+    direccion: c.domicilio ?? '',
   }
-
-  return `/api/contribuyentes?${params}`
 }
 
-export default function ContribuyenteSearch({ value, onChange }: Props) {
+export default function ContribuyenteSearch({ value, onChange, canEdit = false }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Contribuyente[]>([])
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [showNewForm, setShowNewForm] = useState(false)
-  const [newForm, setNewForm] = useState({
-    nombre: '',
-    apellido: '',
-    dni: '',
-    telefono: '',
-    email: '',
-    direccion: '',
-  })
-  const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState('')
+  const [editingContribuyente, setEditingContribuyente] = useState<Contribuyente | null>(null)
+  const [formError, setFormError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleClick(e: globalThis.MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         setShowDropdown(false)
       }
@@ -59,6 +57,12 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  function closePanels() {
+    setShowNewForm(false)
+    setEditingContribuyente(null)
+    setFormError('')
+  }
 
   function handleSearch(q: string) {
     setQuery(q)
@@ -71,7 +75,8 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
     timerRef.current = setTimeout(async () => {
       setSearching(true)
       try {
-        const res = await fetch(buildSearchUrl(q), { credentials: 'include' })
+        const params = buildContribuyenteSearchParams(q)
+        const res = await fetch(`/api/contribuyentes?${params}`, { credentials: 'include' })
         const data = await res.json()
         setResults(data?.docs || [])
         setShowDropdown(true)
@@ -88,32 +93,42 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
     setQuery('')
     setShowDropdown(false)
     setResults([])
+    closePanels()
   }
 
   function clearSelection() {
     onChange(null)
     setQuery('')
+    closePanels()
   }
 
-  async function handleCreateNew() {
-    setCreateError('')
-    if (!newForm.nombre.trim() || !newForm.apellido.trim()) {
-      setCreateError('Nombre y apellido son obligatorios.')
+  function openEdit(c: Contribuyente, e?: ReactMouseEvent) {
+    e?.stopPropagation()
+    setEditingContribuyente(c)
+    setShowNewForm(false)
+    setShowDropdown(false)
+    setFormError('')
+  }
+
+  async function handleCreate(form: ContribuyenteFormValues) {
+    setFormError('')
+    if (!form.nombre.trim() || !form.apellido.trim()) {
+      setFormError('Nombre y apellido son obligatorios.')
       return
     }
-    setCreating(true)
+    setSubmitting(true)
     try {
       const res = await fetch('/api/contribuyentes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          nombre: newForm.nombre.trim(),
-          apellido: newForm.apellido.trim(),
-          dni: newForm.dni.trim() || undefined,
-          telefono: newForm.telefono.trim() || undefined,
-          email: newForm.email.trim() || undefined,
-          direccion: newForm.direccion.trim() || undefined,
+          nombre: form.nombre.trim(),
+          apellido: form.apellido.trim(),
+          dni: form.dni.trim() || undefined,
+          telefono: form.telefono.trim() || undefined,
+          email: form.email.trim() || undefined,
+          direccion: form.direccion.trim() || undefined,
         }),
       })
       if (!res.ok) {
@@ -122,16 +137,53 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
       }
       const created = await res.json()
       selectContribuyente(created.doc)
-      setShowNewForm(false)
-      setNewForm({ nombre: '', apellido: '', dni: '', telefono: '', email: '', direccion: '' })
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Error inesperado')
+      setFormError(err instanceof Error ? err.message : 'Error inesperado')
     } finally {
-      setCreating(false)
+      setSubmitting(false)
     }
   }
 
-  if (value) {
+  async function handleUpdate(form: ContribuyenteFormValues) {
+    if (!editingContribuyente) return
+    setFormError('')
+    if (!form.nombre.trim() || !form.apellido.trim()) {
+      setFormError('Nombre y apellido son obligatorios.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/contribuyentes/${editingContribuyente.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          nombre: form.nombre.trim(),
+          apellido: form.apellido.trim(),
+          dni: form.dni.trim() || undefined,
+          telefono: form.telefono.trim() || undefined,
+          email: form.email.trim() || undefined,
+          direccion: form.direccion.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.errors?.[0]?.message || 'Error al actualizar contribuyente.')
+      }
+      const updated = await res.json()
+      if (value?.id === editingContribuyente.id) {
+        onChange(updated.doc)
+      }
+      setEditingContribuyente(null)
+      setFormError('')
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Error inesperado')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (value && !editingContribuyente) {
     return (
       <div className="contrib-selected">
         <div className="contrib-selected-avatar">
@@ -144,10 +196,37 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
             {value.telefono_web ? ` · Tel: ${value.telefono_web}` : ''}
           </span>
         </div>
+        {canEdit && (
+          <button
+            type="button"
+            className="contrib-edit-btn"
+            onClick={() => openEdit(value)}
+            title="Editar contribuyente"
+          >
+            <IconPencil size={16} />
+          </button>
+        )}
         <button type="button" className="contrib-clear-btn" onClick={clearSelection}>
           <IconX size={16} />
         </button>
       </div>
+    )
+  }
+
+  if (editingContribuyente) {
+    return (
+      <ContribuyenteFormPanel
+        mode="edit"
+        initialValues={contribuyenteToFormValues(editingContribuyente)}
+        numeroContribuyente={editingContribuyente.numero_contribuyente}
+        onSubmit={handleUpdate}
+        onCancel={() => {
+          setEditingContribuyente(null)
+          setFormError('')
+        }}
+        loading={submitting}
+        error={formError}
+      />
     )
   }
 
@@ -175,22 +254,33 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
         <div className="contrib-dropdown">
           {results.length > 0 ? (
             results.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className="contrib-dropdown-item"
-                onClick={() => selectContribuyente(c)}
-              >
-                <div className="contrib-dropdown-avatar">{getInitials(c.nombre)}</div>
-                <div className="contrib-dropdown-info">
-                  <span className="contrib-dropdown-name">{c.nombre}</span>
-                  <span className="contrib-dropdown-dni">
-                    {c.numero_documento ? `DNI: ${c.numero_documento}` : 'Sin DNI'}
-                    {c.numero_contribuyente ? ` · N° ${c.numero_contribuyente}` : ''}
-                  </span>
-                </div>
-                <IconCheck size={16} className="contrib-dropdown-check" />
-              </button>
+              <div key={c.id} className="contrib-dropdown-item-wrap">
+                <button
+                  type="button"
+                  className="contrib-dropdown-item"
+                  onClick={() => selectContribuyente(c)}
+                >
+                  <div className="contrib-dropdown-avatar">{getInitials(c.nombre)}</div>
+                  <div className="contrib-dropdown-info">
+                    <span className="contrib-dropdown-name">{c.nombre}</span>
+                    <span className="contrib-dropdown-dni">
+                      {c.numero_documento ? `DNI: ${c.numero_documento}` : 'Sin DNI'}
+                      {c.numero_contribuyente ? ` · N° ${c.numero_contribuyente}` : ''}
+                    </span>
+                  </div>
+                  <IconCheck size={16} className="contrib-dropdown-check" />
+                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="contrib-dropdown-edit"
+                    onClick={(e) => openEdit(c, e)}
+                    title="Editar contribuyente"
+                  >
+                    <IconPencil size={16} />
+                  </button>
+                )}
+              </div>
             ))
           ) : (
             <div className="contrib-dropdown-empty">No se encontraron contribuyentes.</div>
@@ -221,116 +311,14 @@ export default function ContribuyenteSearch({ value, onChange }: Props) {
       )}
 
       {showNewForm && (
-        <div className="contrib-new-form">
-          <div className="contrib-new-header">
-            <span>Nuevo Contribuyente</span>
-            <button
-              type="button"
-              className="modal-close-btn"
-              onClick={() => {
-                setShowNewForm(false)
-                setCreateError('')
-              }}
-            >
-              <IconX size={16} />
-            </button>
-          </div>
-          {createError && (
-            <div className="modal-error" style={{ marginBottom: 12 }}>
-              <span>{createError}</span>
-            </div>
-          )}
-          <div className="modal-row">
-            <div className="modal-field">
-              <label className="modal-label">
-                Nombre <span className="modal-required">*</span>
-              </label>
-              <input
-                className="modal-input"
-                placeholder="Nombre"
-                value={newForm.nombre}
-                onChange={(e) => setNewForm((p) => ({ ...p, nombre: e.target.value }))}
-              />
-            </div>
-            <div className="modal-field">
-              <label className="modal-label">
-                Apellido <span className="modal-required">*</span>
-              </label>
-              <input
-                className="modal-input"
-                placeholder="Apellido"
-                value={newForm.apellido}
-                onChange={(e) => setNewForm((p) => ({ ...p, apellido: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="modal-row">
-            <div className="modal-field">
-              <label className="modal-label">DNI</label>
-              <input
-                className="modal-input"
-                placeholder="DNI"
-                value={newForm.dni}
-                onChange={(e) => setNewForm((p) => ({ ...p, dni: e.target.value }))}
-              />
-            </div>
-            <div className="modal-field">
-              <label className="modal-label">Teléfono</label>
-              <input
-                className="modal-input"
-                placeholder="Teléfono"
-                value={newForm.telefono}
-                onChange={(e) => setNewForm((p) => ({ ...p, telefono: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="modal-row">
-            <div className="modal-field">
-              <label className="modal-label">Email</label>
-              <input
-                className="modal-input"
-                placeholder="Email"
-                value={newForm.email}
-                onChange={(e) => setNewForm((p) => ({ ...p, email: e.target.value }))}
-              />
-            </div>
-            <div className="modal-field">
-              <label className="modal-label">Dirección</label>
-              <input
-                className="modal-input"
-                placeholder="Dirección"
-                value={newForm.direccion}
-                onChange={(e) => setNewForm((p) => ({ ...p, direccion: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="modal-btn modal-btn--cancel"
-              onClick={() => {
-                setShowNewForm(false)
-                setCreateError('')
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className={`modal-btn modal-btn--submit ${creating ? 'modal-btn--loading' : ''}`}
-              disabled={creating}
-              onClick={handleCreateNew}
-            >
-              {creating ? (
-                <span className="loading loading-spinner loading-sm" />
-              ) : (
-                <>
-                  <IconCheck size={16} /> Crear
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        <ContribuyenteFormPanel
+          mode="create"
+          initialValues={EMPTY_CONTRIBUYENTE_FORM}
+          onSubmit={handleCreate}
+          onCancel={closePanels}
+          loading={submitting}
+          error={formError}
+        />
       )}
     </div>
   )

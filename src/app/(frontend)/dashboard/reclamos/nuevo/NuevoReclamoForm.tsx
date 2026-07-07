@@ -2,7 +2,6 @@
 
 import AddressSearch from '@/components/AddressSearch'
 import FotoUploader, { FotoItem, uploadFotos } from '@/components/FotoUploader'
-import { toContribuyenteSnapshot } from '@/lib/contribuyente-snapshot'
 import type { Contribuyente } from '@/mi-sanbenito/types'
 import {
   IconAlertCircle,
@@ -232,7 +231,7 @@ export default function NuevoReclamoForm({
       }
 
       const body: Record<string, unknown> = {
-        contribuyente: toContribuyenteSnapshot(contribuyente),
+        contribuyente: { externoId: contribuyente.id },
         tipo,
         descripcion: descripcion.trim(),
         medio,
@@ -366,7 +365,11 @@ export default function NuevoReclamoForm({
             <IconCategory size={20} stroke={1.5} />
             <span>Contribuyente</span>
           </div>
-          <ContribuyenteSearch value={contribuyente} onChange={setContribuyente} />
+          <ContribuyenteSearch
+            value={contribuyente}
+            onChange={setContribuyente}
+            canEdit={user?.role === 'admin' || user?.role === 'carga'}
+          />
         </div>
 
         {/* Section: Clasificación */}

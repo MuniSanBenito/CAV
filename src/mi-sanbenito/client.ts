@@ -138,17 +138,31 @@ export async function getContribuyenteById(id: string): Promise<ContribuyenteRes
 }
 
 export type CreateContribuyenteInput = Partial<
-  Pick<
-    Contribuyente,
-    'nombre' | 'numero_documento' | 'telefono_web' | 'email' | 'domicilio'
-  >
+  Pick<Contribuyente, 'nombre' | 'numero_documento' | 'telefono_web' | 'email' | 'domicilio'>
 >
+
+export type UpdateContribuyenteInput = CreateContribuyenteInput
 
 export async function createContribuyente(
   data: CreateContribuyenteInput,
 ): Promise<ContribuyenteResponse> {
   const res = await fetch(`${EXTERNAL_API_BASE_URL}/contribuyentes`, {
     method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+    cache: 'no-store',
+  })
+
+  const result = await handleResponse<ContribuyenteResponse>(res)
+  return { ...result, doc: stripSensitiveFields(result.doc) }
+}
+
+export async function updateContribuyente(
+  id: string,
+  data: UpdateContribuyenteInput,
+): Promise<ContribuyenteResponse> {
+  const res = await fetch(`${EXTERNAL_API_BASE_URL}/contribuyentes/${id}`, {
+    method: 'PATCH',
     headers: getHeaders(),
     body: JSON.stringify(data),
     cache: 'no-store',
