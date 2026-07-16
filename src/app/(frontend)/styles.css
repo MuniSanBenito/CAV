@@ -1799,6 +1799,69 @@ svg {
   color: var(--c-text-3) !important;
 }
 
+/* ── Contribuyentes table: never wider than viewport ── */
+
+.contribuyentes-page {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.contribuyentes-table-wrap {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.contribuyentes-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.contribuyentes-table th,
+.contribuyentes-table td {
+  overflow: hidden;
+}
+
+.contribuyentes-table td {
+  white-space: nowrap;
+}
+
+.contribuyentes-cell-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.contribuyentes-table .reclamos-cell-title {
+  max-width: 100%;
+}
+
+.contribuyentes-col-numero {
+  width: 8%;
+}
+
+.contribuyentes-col-nombre {
+  width: 22%;
+}
+
+.contribuyentes-col-dni {
+  width: 12%;
+}
+
+.contribuyentes-col-domicilio {
+  width: 26%;
+}
+
+.contribuyentes-col-telefono {
+  width: 14%;
+}
+
+.contribuyentes-col-email {
+  width: 18%;
+}
+
 /* ── Pagination ── */
 
 .reclamos-pagination {

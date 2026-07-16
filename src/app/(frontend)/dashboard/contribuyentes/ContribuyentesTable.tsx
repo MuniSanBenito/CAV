@@ -140,27 +140,61 @@ export default function ContribuyentesTable() {
       columnHelper.accessor('numero_contribuyente', {
         header: 'N°',
         cell: (info) => <span className="reclamos-cell-numero">#{info.getValue() ?? '—'}</span>,
-        size: 90,
       }),
       columnHelper.accessor('nombre', {
         header: 'Nombre',
-        cell: (info) => <span className="reclamos-cell-title">{info.getValue() || '—'}</span>,
+        cell: (info) => {
+          const value = info.getValue() || '—'
+          return (
+            <span className="reclamos-cell-title contribuyentes-cell-truncate" title={value}>
+              {value}
+            </span>
+          )
+        },
       }),
       columnHelper.accessor('numero_documento', {
         header: 'DNI',
-        cell: (info) => info.getValue() || '—',
+        cell: (info) => {
+          const value = info.getValue() || '—'
+          return (
+            <span className="contribuyentes-cell-truncate" title={value}>
+              {value}
+            </span>
+          )
+        },
       }),
       columnHelper.accessor('domicilio', {
         header: 'Domicilio',
-        cell: (info) => info.getValue() || '—',
+        cell: (info) => {
+          const value = info.getValue() || '—'
+          return (
+            <span className="contribuyentes-cell-truncate" title={value}>
+              {value}
+            </span>
+          )
+        },
       }),
       columnHelper.accessor('telefono_web', {
         header: 'Teléfono',
-        cell: (info) => info.getValue() || '—',
+        cell: (info) => {
+          const value = info.getValue() || '—'
+          return (
+            <span className="contribuyentes-cell-truncate" title={value}>
+              {value}
+            </span>
+          )
+        },
       }),
       columnHelper.accessor('email', {
         header: 'Email',
-        cell: (info) => info.getValue() || '—',
+        cell: (info) => {
+          const value = info.getValue() || '—'
+          return (
+            <span className="contribuyentes-cell-truncate" title={value}>
+              {value}
+            </span>
+          )
+        },
       }),
     ],
     [],
@@ -181,7 +215,7 @@ export default function ContribuyentesTable() {
   })
 
   return (
-    <div className="reclamos-page">
+    <div className="reclamos-page contribuyentes-page">
       <div className="reclamos-header">
         <div>
           <h1 className="reclamos-title">Contribuyentes</h1>
@@ -222,13 +256,21 @@ export default function ContribuyentesTable() {
         </div>
       </div>
 
-      <div className="reclamos-table-wrap">
+      <div className="reclamos-table-wrap contribuyentes-table-wrap">
         {loading ? (
           <div className="dash-loading">
             <span className="loading loading-spinner loading-lg" />
           </div>
         ) : (
-          <table className="reclamos-table">
+          <table className="reclamos-table contribuyentes-table">
+            <colgroup>
+              <col className="contribuyentes-col-numero" />
+              <col className="contribuyentes-col-nombre" />
+              <col className="contribuyentes-col-dni" />
+              <col className="contribuyentes-col-domicilio" />
+              <col className="contribuyentes-col-telefono" />
+              <col className="contribuyentes-col-email" />
+            </colgroup>
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
