@@ -13,6 +13,7 @@ import {
   IconMenu2,
   IconMoon,
   IconSun,
+  IconUsers,
   IconX,
 } from '@tabler/icons-react'
 import Link from 'next/link'
@@ -28,6 +29,7 @@ interface DashboardUser {
 const navItems = [
   { href: '/dashboard', label: 'Inicio', icon: IconLayoutDashboard },
   { href: '/dashboard/reclamos', label: 'Reclamos', icon: IconFileDescription },
+  { href: '/dashboard/contribuyentes', label: 'Contribuyentes', icon: IconUsers },
   { href: '/dashboard/mapa', label: 'Mapa', icon: IconMap },
   { href: '/dashboard/estadisticas', label: 'Estadísticas', icon: IconChartBar },
 ]
