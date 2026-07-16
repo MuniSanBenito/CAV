@@ -5,7 +5,7 @@
       "source": "saadeghi/daisyui",
       "sourceType": "github",
       "skillPath": "skills/daisyui/SKILL.md",
-      "computedHash": "a98221a5c8f50bfb0dbaf4d0e52982598981bc5e472806814e118ee7df2a9712"
+      "computedHash": "92b9228e8f5325c1d44a3aa820f2af310743307ea978bb86faff118c6864e9ea"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -16,7 +16,7 @@
       "source": "payloadcms/skills",
       "sourceType": "github",
       "skillPath": "skills/payload/SKILL.md",
-      "computedHash": "868c518cec5efe3862accee8ef3751b72fac06d7e12a27c263dc17320f27b20c"
+      "computedHash": "4abfcc828ca2cc0d9142b2fee2456f257f73dd7a37bd1cce2d354231b08b8767"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
