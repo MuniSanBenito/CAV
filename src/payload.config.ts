@@ -26,6 +26,24 @@ export default buildConfig({
     },
     meta: {
       titleSuffix: '— CAV San Benito',
+      icons: {
+        icon: [
+          { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
+          { url: '/icon.svg', type: 'image/svg+xml' },
+          { url: '/icon1.png', sizes: '96x96', type: 'image/png' },
+        ],
+        apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+      },
+      openGraph: {
+        images: [
+          {
+            url: '/og-image.png',
+            width: 1536,
+            height: 672,
+            alt: 'Municipalidad de San Benito',
+          },
+        ],
+      },
     },
   },
   collections: [Users, Areas, ConceptosReclamo, Media, Reclamos],

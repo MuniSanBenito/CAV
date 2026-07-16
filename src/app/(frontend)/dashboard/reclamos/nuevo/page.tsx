@@ -1,7 +1,7 @@
 import NuevoReclamoForm from './NuevoReclamoForm'
 
 export const metadata = {
-  title: 'Nuevo Reclamo — CAV San Benito',
+  title: 'Nuevo Reclamo',
   description: 'Cargar un nuevo reclamo en el sistema',
 }
 

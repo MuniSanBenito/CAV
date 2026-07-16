@@ -1,8 +1,7 @@
-import React from 'react'
 import ReclamosTable from './ReclamosTable'
 
 export const metadata = {
-  title: 'Reclamos — CAV San Benito',
+  title: 'Reclamos',
   description: 'Gestión de reclamos vecinales',
 }
 

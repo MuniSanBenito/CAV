@@ -1,10 +1,8 @@
-import React from 'react'
 import ReclamoDetailClient from './ReclamoDetailClient'
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export function generateMetadata() {
   return {
-    title: `Detalle de Reclamo - CAV San Benito`,
+    title: 'Detalle de Reclamo',
   }
 }
 

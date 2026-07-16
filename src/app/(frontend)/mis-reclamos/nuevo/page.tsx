@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import EjecutorNuevoShell from './EjecutorNuevoShell'
 
 export const metadata: Metadata = {
-  title: 'Nuevo Reclamo | Mis Tareas',
+  title: 'Nuevo Reclamo',
   description: 'Cargar un nuevo reclamo en su área',
 }
 

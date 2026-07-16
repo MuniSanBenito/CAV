@@ -1,13 +1,13 @@
-import React from 'react'
+import type { ReactNode } from 'react'
 import DashboardShell from './DashboardShell'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Dashboard — CAV San Benito',
+  title: 'Dashboard',
   description: 'Panel de gestión del Centro de Atención al Vecino',
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   return <DashboardShell>{children}</DashboardShell>
 }

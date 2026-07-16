@@ -1,9 +1,8 @@
-import React from 'react'
-import MisReclamosClient from './MisReclamosClient'
 import { Metadata } from 'next'
+import MisReclamosClient from './MisReclamosClient'
 
 export const metadata: Metadata = {
-  title: 'Mis Reclamos | CAV',
+  title: 'Mis Reclamos',
   description: 'Gestión de reclamos asignados a mi área',
 }
 

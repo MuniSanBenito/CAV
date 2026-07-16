@@ -1,9 +1,8 @@
-import React from 'react'
-import LoginForm from './LoginForm'
 import type { Metadata } from 'next'
+import LoginForm from './LoginForm'
 
 export const metadata: Metadata = {
-  title: 'Iniciar Sesión — CAV San Benito',
+  title: 'Iniciar Sesión',
   description: 'Ingresá al Centro de Atención al Vecino de la Municipalidad de San Benito',
 }
 
