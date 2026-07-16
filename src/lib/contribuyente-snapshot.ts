@@ -108,6 +108,11 @@ async function fetchContribuyenteSnapshot(
 
   try {
     const { doc } = await getContribuyenteById(externoId)
+    if (!doc?.id) {
+      const fallback = unavailableSnapshot(externoId)
+      cache.set(externoId, fallback)
+      return fallback
+    }
     const snapshot = toHydratedSnapshot(doc)
     cache.set(externoId, snapshot)
     return snapshot

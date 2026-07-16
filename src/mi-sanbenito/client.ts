@@ -133,8 +133,10 @@ export async function getContribuyenteById(id: string): Promise<ContribuyenteRes
     cache: 'no-store',
   })
 
-  const data = await handleResponse<ContribuyenteResponse>(res)
-  return { ...data, doc: stripSensitiveFields(data.doc) }
+  // Payload findByID returns the document at the root; create/update wrap it in `{ doc }`.
+  const data = await handleResponse<Contribuyente | ContribuyenteResponse>(res)
+  const doc = 'doc' in data && data.doc ? data.doc : (data as Contribuyente)
+  return { doc: stripSensitiveFields(doc) }
 }
 
 export type CreateContribuyenteInput = Partial<
