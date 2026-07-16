@@ -1,5 +1,7 @@
 @import 'tailwindcss';
-@plugin 'daisyui';
+@plugin "daisyui" {
+  exclude: calendar;
+}
 
 @plugin 'daisyui/theme' {
   name: 'light';
