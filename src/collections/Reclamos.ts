@@ -374,10 +374,19 @@ export const Reclamos: CollectionConfig = {
           }
 
           const incoming = data as Record<string, unknown>
-          for (const key of Object.keys(incoming)) {
-            if (!EJECUTOR_ALLOWED_UPDATE_KEYS.has(key)) {
-              throw new APIError('No autorizado a modificar este campo', 403)
+          const isSameValue = (a: unknown, b: unknown): boolean => {
+            if (a === b) return true
+            if (a == null && b == null) return true
+            if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
+              return JSON.stringify(a) === JSON.stringify(b)
             }
+            return false
+          }
+
+          for (const key of Object.keys(incoming)) {
+            if (EJECUTOR_ALLOWED_UPDATE_KEYS.has(key)) continue
+            if (isSameValue(incoming[key], (originalDoc as Record<string, unknown> | undefined)?.[key])) continue
+            throw new APIError('No autorizado a modificar este campo', 403)
           }
 
           const nuevoEstado = incoming.estado as string | undefined

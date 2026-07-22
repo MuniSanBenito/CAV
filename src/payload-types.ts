@@ -215,7 +215,7 @@ export interface ConceptosReclamo {
  */
 export interface Media {
   id: string;
-  alt: string;
+  alt?: string | null;
   prefix?: string | null;
   updatedAt: string;
   createdAt: string;
