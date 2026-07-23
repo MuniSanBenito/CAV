@@ -44,7 +44,7 @@ interface UserInfo {
   nombre: string
   apellido: string
   role: string
-  area?: { id: string; nombre: string } | string
+  areas?: { id: string; nombre: string }[] | string[]
 }
 
 interface NuevoReclamoFormProps {
@@ -167,9 +167,14 @@ export default function NuevoReclamoForm({
             }
             setUser(userData.user)
             if (userData.user.role === 'ejecutor') {
-              const userAreaId =
-                typeof userData.user.area === 'string' ? userData.user.area : userData.user.area?.id
-              if (userAreaId) setAreaDerivada(userAreaId)
+              const userAreas = userData.user.areas || []
+              const firstAreaId =
+                userAreas.length > 0
+                  ? typeof userAreas[0] === 'string'
+                    ? userAreas[0]
+                    : userAreas[0]?.id
+                  : undefined
+              if (firstAreaId) setAreaDerivada(firstAreaId)
             }
           }
         }
@@ -183,16 +188,18 @@ export default function NuevoReclamoForm({
       .finally(() => setLoading(false))
   }, [])
 
-  // Derive area_receptora from user
-  const areaReceptoraId = user?.area
-    ? typeof user.area === 'string'
-      ? user.area
-      : user.area.id
+  // Derive area_receptora from user's areas (hasMany)
+  const userAreas = user?.areas || []
+  const firstUserArea = userAreas.length > 0 ? userAreas[0] : undefined
+  const areaReceptoraId = firstUserArea
+    ? typeof firstUserArea === 'string'
+      ? firstUserArea
+      : firstUserArea.id
     : ''
-  const areaReceptoraNombre = user?.area
-    ? typeof user.area === 'string'
-      ? areas.find((a) => a.id === user.area)?.nombre || '—'
-      : user.area.nombre
+  const areaReceptoraNombre = firstUserArea
+    ? typeof firstUserArea === 'string'
+      ? areas.find((a) => a.id === firstUserArea)?.nombre || '—'
+      : firstUserArea.nombre
     : 'Sin área asignada'
 
   function handleConceptoChange(conceptoId: string) {
