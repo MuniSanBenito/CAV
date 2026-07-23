@@ -1,27 +1,16 @@
 import React from 'react'
-import { IconChartBar, IconClock, IconMapPin, IconBuildingCommunity, IconLoader } from '@tabler/icons-react'
+import { IconChartBar, IconClock, IconMapPin, IconBuildingCommunity, IconLoader, IconAlertTriangle, IconFileDescription } from '@tabler/icons-react'
+import { getPayloadClient } from '@/lib/auth'
+import { getReclamosStats, type ReclamosStats } from '@/lib/stats'
 
-interface StatsResponse {
-  porEstado: {
-    pendiente: number
-    en_proceso: number
-    resuelto: number
-    rechazado: number
-    total: number
-  }
-  porArea: { nombre: string; count: number }[]
-  porBarrio: { nombre: string; count: number }[]
-  porConcepto: { nombre: string; count: number }[]
-  tiempoResolucion: { promedio: number; min: number; max: number }
-  vencidos: number
-}
+export const dynamic = 'force-dynamic'
 
-async function getStats(): Promise<StatsResponse> {
+async function getStats(): Promise<ReclamosStats> {
   try {
-    const res = await fetch('/api/stats', { credentials: 'include' })
-    if (!res.ok) throw new Error('Error fetching stats')
-    return res.json()
-  } catch {
+    const payload = await getPayloadClient()
+    return await getReclamosStats(payload)
+  } catch (e) {
+    console.error('Estadisticas error', e)
     return {
       porEstado: { pendiente: 0, en_proceso: 0, resuelto: 0, rechazado: 0, total: 0 },
       porArea: [],
@@ -76,11 +65,29 @@ export default async function EstadisticasPage() {
         </div>
         <div className="stat-card stat-card--rejected">
           <div className="stat-card-icon">
-            <IconChartBar size={24} stroke={1.5} />
+            <IconAlertTriangle size={24} stroke={1.5} />
+          </div>
+          <div className="stat-card-data">
+            <span className="stat-card-number">{stats.porEstado.rechazado}</span>
+            <span className="stat-card-label">Rechazados</span>
+          </div>
+        </div>
+        <div className="stat-card stat-card--rejected">
+          <div className="stat-card-icon">
+            <IconClock size={24} stroke={1.5} />
           </div>
           <div className="stat-card-data">
             <span className="stat-card-number">{stats.vencidos}</span>
             <span className="stat-card-label">Vencidos (SLA)</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon">
+            <IconFileDescription size={24} stroke={1.5} />
+          </div>
+          <div className="stat-card-data">
+            <span className="stat-card-number">{stats.porEstado.total}</span>
+            <span className="stat-card-label">Total</span>
           </div>
         </div>
       </div>
@@ -95,19 +102,19 @@ export default async function EstadisticasPage() {
           <div style={{ padding: '1rem', background: 'var(--theme-elevation-50)', borderRadius: 'var(--border-radius-m)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--theme-text-muted)' }}>Promedio</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-              {stats.tiempoResolucion.promedio.toFixed(1)}
+              {(stats.tiempoResolucion.promedio ?? 0).toFixed(1)}
             </div>
           </div>
           <div style={{ padding: '1rem', background: 'var(--theme-elevation-50)', borderRadius: 'var(--border-radius-m)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--theme-text-muted)' }}>Más rápido</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-              {stats.tiempoResolucion.min.toFixed(1)}
+              {(stats.tiempoResolucion.min ?? 0).toFixed(1)}
             </div>
           </div>
           <div style={{ padding: '1rem', background: 'var(--theme-elevation-50)', borderRadius: 'var(--border-radius-m)' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--theme-text-muted)' }}>Más lento</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-              {stats.tiempoResolucion.max.toFixed(1)}
+              {(stats.tiempoResolucion.max ?? 0).toFixed(1)}
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import {
   estadoBadgeClass,
   estadoLabel,
   getSlaStatus,
+  medioLabel,
   prioridadBadgeClass,
   prioridadLabel,
   slaBadgeClass,
@@ -93,7 +94,7 @@ async function fetchContribuyenteIdsForSearch(query: string): Promise<string[]> 
 
 function escapeCsvCell(value: unknown): string {
   const str = value == null ? '' : String(value)
-  if (/[",\n\r]/.test(str)) {
+  if (/[;"\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`
   }
   return str
@@ -302,30 +303,38 @@ export default function ReclamosTable() {
         ? await fetchContribuyenteIdsForSearch(debouncedSearch)
         : undefined
 
-      const params = buildReclamosQueryParams({
-        columnFilters,
-        debouncedSearch,
-        sorting,
-        fechaDesde,
-        fechaHasta,
-        exportAll: true,
-        contribuyenteIds,
-      })
+      // Paginated fetch to avoid truncation on large datasets
+      const pageSize = 100
+      let allDocs: Record<string, unknown>[] = []
+      let totalDocs = 0
+      let currentPage = 1
+      let totalPages = 1
 
-      const res = await fetch(`/api/reclamos?${params.toString()}`, { credentials: 'include' })
-      const json = await res.json()
-      const docs = json.docs || []
-      const totalDocs = json.totalDocs ?? docs.length
+      while (currentPage <= totalPages) {
+        const params = buildReclamosQueryParams({
+          columnFilters,
+          debouncedSearch,
+          sorting,
+          fechaDesde,
+          fechaHasta,
+          pagination: { pageIndex: currentPage - 1, pageSize },
+          contribuyenteIds,
+        })
 
-      if (docs.length === 0) {
-        alert('No hay reclamos para exportar con los filtros actuales.')
-        return
+        const res = await fetch(`/api/reclamos?${params.toString()}`, {
+          credentials: 'include',
+        })
+        const json = await res.json()
+        const docs: Record<string, unknown>[] = json.docs || []
+        allDocs = allDocs.concat(docs)
+        totalDocs = json.totalDocs ?? allDocs.length
+        totalPages = json.totalPages ?? Math.ceil(totalDocs / pageSize)
+        currentPage += 1
       }
 
-      if (totalDocs > docs.length) {
-        alert(
-          `Se exportaron ${docs.length} de ${totalDocs} reclamos. El resultado puede estar truncado.`,
-        )
+      if (allDocs.length === 0) {
+        alert('No hay reclamos para exportar con los filtros actuales.')
+        return
       }
 
       const headers = [
@@ -333,39 +342,59 @@ export default function ReclamosTable() {
         'Tipo',
         'Estado',
         'Prioridad',
+        'SLA',
+        'Medio',
+        'Área Receptora',
         'Área Derivada',
         'Concepto',
         'Contribuyente',
         'DNI',
+        'Teléfono',
         'Descripción',
         'Dirección',
         'Barrio',
+        'Observaciones',
         'Fecha Creación',
         'Fecha Compromiso',
         'Fecha Resolución',
       ]
-      const rows = docs.map((r: Record<string, unknown>) => {
+      const rows = allDocs.map((r: Record<string, unknown>) => {
+        const areaReceptora = r.area_receptora as Area | string | undefined
         const areaDerivada = r.area_derivada as Area | string | undefined
         const concepto = r.concepto as { nombre?: string } | string | undefined
         const contribuyente = r.contribuyente as Contribuyente | undefined
         const ubicacion = r.ubicacion as
-          { direccionIngresada?: string; barrio?: string } | undefined
+          | { direccionIngresada?: string; barrio?: string }
+          | undefined
+        const slaStatus = getSlaStatus(
+          (r.fechaCompromiso as string) ?? null,
+          (r.estado as string) ?? null,
+        )
 
         return [
           r.numero ?? '',
-          r.tipo ?? '',
-          r.estado ?? '',
-          r.prioridad ?? '',
+          tipoLabel[r.tipo as string] || (r.tipo ?? ''),
+          estadoLabel[r.estado as string] || (r.estado ?? ''),
+          prioridadLabel[r.prioridad as string] || (r.prioridad ?? ''),
+          slaStatus ? slaLabel[slaStatus] : '',
+          medioLabel[r.medio as string] || (r.medio ?? ''),
+          typeof areaReceptora === 'object' && areaReceptora
+            ? areaReceptora.nombre
+            : (areaReceptora ?? ''),
           typeof areaDerivada === 'object' && areaDerivada
             ? areaDerivada.nombre
             : (areaDerivada ?? ''),
           typeof concepto === 'object' && concepto ? concepto.nombre : (concepto ?? ''),
           contribuyente?.nombre ?? '',
           contribuyente?.numero_documento ?? '',
+          contribuyente?.telefono_web ?? '',
           r.descripcion ?? '',
           ubicacion?.direccionIngresada ?? '',
           ubicacion?.barrio ?? '',
-          r.createdAt ? new Date(r.createdAt as string).toLocaleDateString('es-AR') : '',
+          r.observaciones ?? '',
+          r.createdAt
+            ? new Date(r.createdAt as string).toLocaleDateString('es-AR')
+            : '',
           r.fechaCompromiso
             ? new Date(r.fechaCompromiso as string).toLocaleDateString('es-AR')
             : '',
@@ -376,9 +405,10 @@ export default function ReclamosTable() {
       })
 
       const csvContent = [headers, ...rows]
-        .map((row) => row.map(escapeCsvCell).join(','))
+        .map((row) => row.map(escapeCsvCell).join(';'))
         .join('\n')
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const bom = '\uFEFF'
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
